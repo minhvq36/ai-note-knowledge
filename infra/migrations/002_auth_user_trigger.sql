@@ -1,4 +1,5 @@
 /* TO TEST */
+/* TO CHANGE WAY TO CREATE TENANT */
 
 create or replace function public.handle_new_auth_user()
 returns trigger as $$
