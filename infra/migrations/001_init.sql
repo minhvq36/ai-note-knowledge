@@ -35,3 +35,12 @@ create table note_shares (
     created_at timestamptz not null default now(),
     primary key (note_id, user_id)
 );
+
+/* TO TEST */
+create table tenant_join_requests (
+    tenant_id uuid not null references tenants(id) on delete cascade,
+    user_id uuid not null references users(id) on delete cascade,
+    status text not null check (status in ('pending', 'approved', 'rejected')),
+    created_at timestamptz not null default now(),
+    primary key (tenant_id, user_id)
+);
