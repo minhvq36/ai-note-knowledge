@@ -261,3 +261,6 @@ with check (
     status in ('approved', 'rejected')
 );
 
+
+/* TO ADD USERS AND TENANTS POLICIES */
+
