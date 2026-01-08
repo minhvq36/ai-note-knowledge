@@ -17,11 +17,11 @@ begin
         email
     )
     values (
-        new.id,
+        new.id, -- auth.users.id new record that triggered this
         split_part(new.email, '@', 1),
         new.email
     )
-    on conflict (id) do nothing;
+    on conflict (id) do nothing; -- in case of retries
 
     return new;
 end;

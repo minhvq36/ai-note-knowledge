@@ -38,9 +38,17 @@ create table note_shares (
 
 /* TO TEST */
 create table tenant_join_requests (
-    tenant_id uuid not null references tenants(id) on delete cascade,
-    user_id uuid not null references users(id) on delete cascade,
-    status text not null check (status in ('pending', 'approved', 'rejected')),
-    created_at timestamptz not null default now(),
-    primary key (tenant_id, user_id)
+    id uuid primary key default gen_random_uuid(),
+    tenant_id uuid not null references tenants(id) on delete cascade, -- join what tenant
+    user_id uuid not null references users(id) on delete cascade, -- who will join
+    initiated_by uuid not null references users(id), -- who request or invite
+    direction text not null check (direction in ('join', 'invite')),
+    status text not null check (status in ('pending', 'approved', 'rejected', 'cancelled')),
+    decided_by uuid references users(id), -- who approved/rejected
+    decided_at timestamptz,
+    created_at timestamptz not null default now() -- request/invite record created time
 );
+
+create unique index uq_tenant_user_active_request -- prevent duplicate active requests
+on tenant_join_requests (tenant_id, user_id)
+where status = 'pending';
