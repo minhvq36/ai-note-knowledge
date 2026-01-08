@@ -1,30 +1,35 @@
-/* TO TEST */
-/* TO CHANGE WAY TO CREATE TENANT */
+/*TO TEST*/
 
 create or replace function public.handle_new_auth_user()
-returns trigger as $$
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
 begin
-    insert into public.tenants (id, name)
-    values (gen_random_uuid(), new.email);
+    /*
+    Sync auth.users to public.users.
+    */
 
     insert into public.users (
         id,
-        tenant_id,
         username,
         email
     )
     values (
         new.id,
-        (select id from tenants order by created_at desc limit 1),
         split_part(new.email, '@', 1),
         new.email
-    );
+    )
+    on conflict (id) do nothing;
 
     return new;
 end;
-$$ language plpgsql security definer;
+$$;
 
-/* Trigger on auth.users */
+/*
+Trigger: fires after a new auth user is created
+*/
 create trigger on_auth_user_created
 after insert on auth.users
 for each row
