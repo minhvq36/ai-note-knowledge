@@ -176,34 +176,6 @@ using (
     )
 );
 
--- Allow only owners and admins to insert new tenant members
-create policy "tenant_members_insert_owner_admin"
-on tenant_members
-for insert
-with check (
-    exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = tenant_members.tenant_id
-          and tm.user_id = auth.uid()
-          and tm.role in ('owner', 'admin')
-    )
-);
-
-create policy "tenant_members_delete_self_or_owner"
-on tenant_members
-for delete
-using (
-    user_id = auth.uid()
-    or exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = tenant_members.tenant_id
-          and tm.user_id = auth.uid()
-          and tm.role = 'owner'
-    )
-);
-
 /* TO TEST */
 -- RLS for tenant_join_requests table
 alter table tenant_join_requests enable row level security;
