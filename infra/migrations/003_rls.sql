@@ -182,10 +182,12 @@ alter table tenant_join_requests enable row level security;
 
 -- Allow users to create their own join requests
 create policy "tenant_join_request_insert_self"
-on tenant_join_requests
+on tenant_join_requests -- insert on tenant_join_requests table
 for insert
 with check (
     user_id = auth.uid()
+    and initiated_by = auth.uid()
+    and direction = 'join' 
     and not exists (
         select 1
         from tenant_members tm
@@ -200,6 +202,7 @@ on tenant_join_requests
 for select
 using (
     user_id = auth.uid()
+    or initiated_by = auth.uid() -- allow initiators to see requests/invites they made
 );
 
 -- Allow tenant owners and admins to see all join requests for their tenants
@@ -215,24 +218,6 @@ using (
           and tm.role in ('owner', 'admin')
     )
 );
-
--- Allow tenant owners and admins to update join request status
-create policy "tenant_join_request_update_admin"
-on tenant_join_requests
-for update
-using (
-    exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = tenant_join_requests.tenant_id
-          and tm.user_id = auth.uid()
-          and tm.role in ('owner', 'admin')
-    )
-)
-with check (
-    status in ('approved', 'rejected')
-);
-
 
 /* TO ADD USERS AND TENANTS POLICIES */
 
