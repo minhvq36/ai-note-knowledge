@@ -1,0 +1,95 @@
+/*
+Reject a join request for a tenant.
+
+Rules / Cases:
+1. Caller must be authenticated.
+2. Caller must be owner or admin of the tenant.
+3. Target join request must exist.
+4. Only pending join requests can be rejected.
+5. Direction MUST be 'join'; invite requests cannot be rejected here.
+6. Membership is NOT created.
+7. Audit log is created for the rejection action.
+8. Duplicate rejects or non-pending requests raise an error.
+*/
+
+create or replace function public.reject_join_request(
+    p_request_id uuid
+)
+returns table (
+    request_id uuid,
+    result text
+)
+language plpgsql
+security definer
+as $$
+declare
+    v_request tenant_join_requests%rowtype;
+begin
+    /* Ensure caller is authenticated */
+    if auth.uid() is null then
+        raise exception 'Unauthenticated';
+    end if;
+
+    /* Fetch the join request */
+    select *
+    into v_request
+    from tenant_join_requests
+    where id = p_request_id;
+
+    if not found then
+        raise exception 'Join request not found';
+    end if;
+
+    /* Ensure request is a JOIN request */
+    if v_request.direction <> 'join' then
+        raise exception 'Cannot reject invite request';
+    end if;
+
+    /* Ensure request is pending */
+    if v_request.status <> 'pending' then
+        raise exception 'Only pending requests can be rejected';
+    end if;
+
+    /* Ensure caller is owner/admin of the tenant */
+    if not exists (
+        select 1
+        from tenant_members tm
+        where tm.tenant_id = v_request.tenant_id
+          and tm.user_id = auth.uid()
+          and tm.role in ('owner', 'admin')
+    ) then
+        raise exception 'Permission denied';
+    end if;
+
+    /* Reject the request */
+    update tenant_join_requests
+    set status = 'rejected',
+        decided_by = auth.uid(),
+        decided_at = now()
+    where id = p_request_id;
+
+    /* Audit log */
+    insert into audit_logs (
+        tenant_id,
+        actor_id,
+        action,
+        metadata,
+        created_at
+    )
+    values (
+        v_request.tenant_id,
+        auth.uid(),
+        'tenant.join_request.reject',
+        jsonb_build_object(
+            'request_id', p_request_id,
+            'user_id', v_request.user_id
+        ),
+        now()
+    );
+
+    request_id := p_request_id;
+    result := 'rejected';
+    return next;
+    return;
+end;
+$$;

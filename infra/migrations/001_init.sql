@@ -52,15 +52,3 @@ create table tenant_join_requests (
 create unique index uq_tenant_user_active_request -- prevent duplicate active requests
 on tenant_join_requests (tenant_id, user_id)
 where status = 'pending';
-
--- Audit logs table for tracking actions
-create table audit_logs (
-    id uuid primary key default gen_random_uuid(),
-    tenant_id uuid not null references tenants(id) on delete cascade,
-    actor_id uuid references users(id) on delete set null,
-    action text not null,
-    target_type text not null,
-    target_id uuid,
-    metadata jsonb not null default '{}',
-    created_at timestamptz not null default now()
-);
