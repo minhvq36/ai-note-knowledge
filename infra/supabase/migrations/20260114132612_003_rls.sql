@@ -219,5 +219,11 @@ using (
     )
 );
 
+alter table tenants enable row level security;
+alter table users enable row level security;
+alter table audit_logs enable row level security;
+
 /* TO ADD USERS AND TENANTS POLICIES -> RPC I think*/
+
+
 
