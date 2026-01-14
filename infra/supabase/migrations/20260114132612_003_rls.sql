@@ -196,26 +196,17 @@ with check (
     )
 );
 
--- Allow users to see their own join requests
-create policy "tenant_join_request_select_self"
-on tenant_join_requests
-for select
+-- Allow users to see their own join requests or tenant admins to see requests
+create policy "tenant_join_request_select_self_or_tenant_admin"
+on tenant_join_requests for select
 using (
     user_id = (select auth.uid())
-    or initiated_by = (select auth.uid()) -- allow initiators to see requests/invites they made
-);
-
--- Allow tenant owners and admins to see all join requests for their tenants
-create policy "tenant_join_request_select_admin"
-on tenant_join_requests
-for select
-using (
-    exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = tenant_join_requests.tenant_id
-          and tm.user_id = (select auth.uid())
-          and tm.role in ('owner', 'admin')
+    or initiated_by = (select auth.uid()) -- allow seeing own initiated requests
+    or exists (
+        select 1 from tenant_members tm 
+        where tm.tenant_id = tenant_join_requests.tenant_id 
+        and tm.user_id = (select auth.uid()) 
+        and tm.role in ('owner', 'admin') -- allow tenant admins to see requests
     )
 );
 

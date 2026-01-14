@@ -52,3 +52,10 @@ create table tenant_join_requests (
 create unique index uq_tenant_user_active_request -- prevent duplicate active requests
 on tenant_join_requests (tenant_id, user_id)
 where status = 'pending';
+
+-- Foreign Key Indexes for Performance
+CREATE INDEX IF NOT EXISTS idx_notes_tenant_id ON public.notes(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_notes_owner_id ON public.notes(owner_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_members_user_id ON public.tenant_members(user_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_join_requests_tenant_id ON public.tenant_join_requests(tenant_id);
+CREATE INDEX IF NOT EXISTS idx_tenant_join_requests_user_id ON public.tenant_join_requests(user_id);
