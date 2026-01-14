@@ -42,3 +42,5 @@ create index idx_audit_logs_action
 on audit_logs (action);
 
 alter table audit_logs enable row level security;
+
+CREATE INDEX idx_audit_logs_actor_id ON public.audit_logs(actor_id);
