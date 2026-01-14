@@ -169,13 +169,11 @@ on tenant_members
 for select
 using (
     -- User can see their own memberships
-    user_id = auth.uid() 
+    user_id = (select auth.uid()) 
     OR 
     -- User can see memberships of tenants they belong to
     tenant_id IN (
-        SELECT tm.tenant_id 
-        FROM tenant_members tm 
-        WHERE tm.user_id = auth.uid()
+        SELECT tenant_id FROM auth_user_tenant_ids()
     )
 );
 
