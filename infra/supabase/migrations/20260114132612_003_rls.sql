@@ -11,18 +11,18 @@ using (
         select 1
         from tenant_members tm
         where tm.tenant_id = notes.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     )
     and (
         /* Owner can always read */
-        owner_id = auth.uid()
+        owner_id = (select auth.uid())
         or
         /* Shared user can read */
         exists (
             select 1
             from note_shares ns
             where ns.note_id = notes.id
-              and ns.user_id = auth.uid()
+              and ns.user_id = (select auth.uid())
         )
     )
 );
@@ -31,12 +31,12 @@ create policy "notes_insert_member_as_owner"
 on notes
 for insert
 with check (
-    owner_id = auth.uid()
+    owner_id = (select auth.uid())
     and exists (
         select 1
         from tenant_members tm
         where tm.tenant_id = notes.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     )
 );
 
@@ -48,15 +48,15 @@ using (
         select 1
         from tenant_members tm
         where tm.tenant_id = notes.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     )
     and (
-        owner_id = auth.uid()
+        owner_id = (select auth.uid())
         or exists (
             select 1
             from note_shares ns
             where ns.note_id = notes.id
-              and ns.user_id = auth.uid()
+              and ns.user_id = (select auth.uid())
               and ns.permission = 'write'
         )
     )
@@ -82,12 +82,12 @@ create policy "notes_delete_owner_only"
 on notes
 for delete
 using (
-    owner_id = auth.uid()
+    owner_id = (select auth.uid())
     and exists (
         select 1
         from tenant_members tm
         where tm.tenant_id = notes.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     )
 );
 
@@ -101,11 +101,11 @@ using (
         from notes n
         join tenant_members tm
           on tm.tenant_id = n.tenant_id
-         and tm.user_id = auth.uid() -- member of the tenant
+         and tm.user_id = (select auth.uid()) -- member of the tenant
         where n.id = note_shares.note_id
           and (
-              n.owner_id = auth.uid() -- owner
-              or note_shares.user_id = auth.uid() -- shared user
+              n.owner_id = (select auth.uid()) -- owner
+              or note_shares.user_id = (select auth.uid()) -- shared user
           )
     )
 );
@@ -119,12 +119,12 @@ with check (
         from notes n
         join tenant_members tm
           on tm.tenant_id = n.tenant_id
-         and tm.user_id = auth.uid()
+         and tm.user_id = (select auth.uid())
         join tenant_members target
           on target.tenant_id = n.tenant_id
          and target.user_id = note_shares.user_id
         where n.id = note_shares.note_id
-          and n.owner_id = auth.uid()
+          and n.owner_id = (select auth.uid())
     )
 );
 
@@ -136,7 +136,7 @@ using (
         select 1
         from notes n
         where n.id = note_shares.note_id
-          and n.owner_id = auth.uid()
+          and n.owner_id = (select auth.uid())
     )
 )
 with check (
@@ -144,7 +144,7 @@ with check (
         select 1
         from notes n
         where n.id = note_shares.note_id
-          and n.owner_id = auth.uid()
+          and n.owner_id = (select auth.uid())
     )
 );
 
@@ -156,7 +156,7 @@ using (
         select 1
         from notes n
         where n.id = note_shares.note_id
-          and n.owner_id = auth.uid()
+          and n.owner_id = (select auth.uid())
     )
 );
 
@@ -172,7 +172,7 @@ using (
         select 1
         from tenant_members self
         where self.tenant_id = tenant_members.tenant_id
-          and self.user_id = auth.uid()
+          and self.user_id = (select auth.uid())
     )
 );
 
@@ -185,14 +185,14 @@ create policy "tenant_join_request_insert_self"
 on tenant_join_requests -- insert on tenant_join_requests table
 for insert
 with check (
-    user_id = auth.uid()
-    and initiated_by = auth.uid()
+    user_id = (select auth.uid())
+    and initiated_by = (select auth.uid())
     and direction = 'join' 
     and not exists (
         select 1
         from tenant_members tm
         where tm.tenant_id = tenant_join_requests.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     )
 );
 
@@ -201,8 +201,8 @@ create policy "tenant_join_request_select_self"
 on tenant_join_requests
 for select
 using (
-    user_id = auth.uid()
-    or initiated_by = auth.uid() -- allow initiators to see requests/invites they made
+    user_id = (select auth.uid())
+    or initiated_by = (select auth.uid()) -- allow initiators to see requests/invites they made
 );
 
 -- Allow tenant owners and admins to see all join requests for their tenants
@@ -214,7 +214,7 @@ using (
         select 1
         from tenant_members tm
         where tm.tenant_id = tenant_join_requests.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     )
 );

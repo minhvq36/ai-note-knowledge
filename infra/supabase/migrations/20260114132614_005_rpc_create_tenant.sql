@@ -13,7 +13,7 @@ declare
     v_tenant_id uuid;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -45,7 +45,7 @@ begin
     )
     values (
         v_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'owner',
         now()
     );
@@ -60,7 +60,7 @@ begin
     )
     values (
         v_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.create',
         jsonb_build_object(
             'tenant_name', p_name

@@ -22,7 +22,7 @@ declare
     v_request_id uuid;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -40,7 +40,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     ) then
         raise exception 'User is already a tenant member';
     end if;
@@ -50,7 +50,7 @@ begin
     into v_request_id
     from tenant_join_requests tjr
     where tjr.tenant_id = p_tenant_id
-      and tjr.user_id = auth.uid()
+      and tjr.user_id = (select auth.uid())
       and tjr.direction = 'join'
       and tjr.status = 'pending';
 
@@ -66,7 +66,7 @@ begin
         select 1
         from tenant_join_requests tjr
         where tjr.tenant_id = p_tenant_id
-          and tjr.user_id = auth.uid()
+          and tjr.user_id = (select auth.uid())
           and tjr.direction = 'invite'
           and tjr.status = 'pending'
     ) then
@@ -89,8 +89,8 @@ begin
     values (
         gen_random_uuid(),
         p_tenant_id,
-        auth.uid(),
-        auth.uid(),
+        (select auth.uid()),
+        (select auth.uid()),
         'join',
         'pending',
         now()
@@ -108,7 +108,7 @@ begin
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.join_request.create',
         jsonb_build_object(
             'request_id', v_request_id

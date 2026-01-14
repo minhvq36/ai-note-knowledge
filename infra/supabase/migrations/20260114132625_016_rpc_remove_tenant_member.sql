@@ -38,7 +38,7 @@ declare
     v_target_role text;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -47,7 +47,7 @@ begin
     into v_caller_role
     from tenant_members
     where tenant_id = p_tenant_id
-      and user_id = auth.uid();
+      and user_id = (select auth.uid());
 
     if v_caller_role is null then
         raise exception 'Caller is not a member of this tenant';
@@ -105,7 +105,7 @@ begin
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.member.remove',
         jsonb_build_object(
             'removed_user_id', p_target_user_id,

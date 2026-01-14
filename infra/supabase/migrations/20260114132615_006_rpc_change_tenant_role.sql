@@ -37,7 +37,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
         raise exception 'Only tenant owner can change roles';
@@ -92,7 +92,7 @@ begin
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.member.change_role',
         jsonb_build_object(
             'target_user_id', p_target_user_id,

@@ -26,7 +26,7 @@ declare
     v_owner_count int;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -43,7 +43,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
         raise exception 'Only tenant owner can delete tenant';
@@ -75,10 +75,10 @@ begin
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.delete',
         jsonb_build_object(
-            'deleted_by', auth.uid(),
+            'deleted_by', (select auth.uid()),
             'tenant_id', p_tenant_id
         ),
         now()

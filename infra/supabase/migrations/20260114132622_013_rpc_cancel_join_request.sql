@@ -27,7 +27,7 @@ declare
     v_request tenant_join_requests%rowtype;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -52,14 +52,14 @@ begin
     end if;
 
     /* Ensure caller is the user who created the request */
-    if v_request.initiated_by <> auth.uid() then
+    if v_request.initiated_by <> (select auth.uid()) then
         raise exception 'Permission denied: only requester can cancel';
     end if;
 
     /* Cancel the request */
     update tenant_join_requests
     set status = 'cancelled',
-        decided_by = auth.uid(),
+        decided_by = (select auth.uid()),
         decided_at = now()
     where id = p_request_id;
 
@@ -73,7 +73,7 @@ begin
     )
     values (
         v_request.tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.join_request.cancel',
         jsonb_build_object(
             'request_id', p_request_id,

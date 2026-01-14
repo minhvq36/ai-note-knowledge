@@ -28,7 +28,7 @@ declare
     v_request tenant_join_requests%rowtype;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -57,7 +57,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = v_request.tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     ) then
         raise exception 'Permission denied: only tenant owner/admin can cancel';
@@ -66,7 +66,7 @@ begin
     /* Cancel the invite */
     update tenant_join_requests
     set status = 'cancelled',
-        decided_by = auth.uid(),
+        decided_by = (select auth.uid()),
         decided_at = now()
     where id = p_request_id;
 
@@ -80,7 +80,7 @@ begin
     )
     values (
         v_request.tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.invite.cancel',
         jsonb_build_object(
             'request_id', p_request_id,
