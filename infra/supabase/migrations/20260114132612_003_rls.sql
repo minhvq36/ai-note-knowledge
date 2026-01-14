@@ -164,6 +164,16 @@ using (
 alter table tenant_members enable row level security;
 
 -- Allow users to see their own tenant memberships
+CREATE OR REPLACE FUNCTION auth_user_tenant_ids()
+RETURNS TABLE (tenant_id uuid)
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    SELECT tenant_id
+    FROM tenant_members
+    WHERE user_id = (select auth.uid());
+$$;
 create policy "tenant_members_select_same_tenant"
 on tenant_members
 for select
