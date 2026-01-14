@@ -103,6 +103,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -110,6 +112,8 @@ begin
         p_tenant_id,
         (select auth.uid()),
         'tenant.join_request.create',
+        'tenant_join_request',
+        v_request_id,
         jsonb_build_object(
             'request_id', v_request_id
         ),

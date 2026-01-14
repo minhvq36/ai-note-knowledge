@@ -70,6 +70,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -77,6 +79,8 @@ begin
         p_tenant_id,
         (select auth.uid()),
         'tenant.delete',
+        'tenant',
+        p_tenant_id,
         jsonb_build_object(
             'deleted_by', (select auth.uid()),
             'tenant_id', p_tenant_id

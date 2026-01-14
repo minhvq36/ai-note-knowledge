@@ -89,6 +89,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -96,6 +98,8 @@ begin
         v_request.tenant_id,
         (select auth.uid()),
         'tenant.join_request.approve',
+        'tenant_join_request',
+        p_request_id,
         jsonb_build_object(
             'request_id', p_request_id,
             'user_id', v_request.user_id

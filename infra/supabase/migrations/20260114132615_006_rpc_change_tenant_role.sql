@@ -87,6 +87,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -94,6 +96,8 @@ begin
         p_tenant_id,
         (select auth.uid()),
         'tenant.member.change_role',
+        'user',
+        p_target_user_id,
         jsonb_build_object(
             'target_user_id', p_target_user_id,
             'new_role', p_new_role

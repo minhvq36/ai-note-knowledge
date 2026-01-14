@@ -71,6 +71,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -78,6 +80,8 @@ begin
         p_tenant_id,
         (select auth.uid()),
         'tenant.member.leave',
+        'user',
+        (select auth.uid()),
         jsonb_build_object(
             'user_id', (select auth.uid())
         ),
