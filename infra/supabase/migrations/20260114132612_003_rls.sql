@@ -213,7 +213,57 @@ using (
 alter table tenants enable row level security;
 alter table users enable row level security;
 
-/* TO ADD USERS AND TENANTS POLICIES -> RPC I think*/
+-- allow authenticated users to see other users (for displaying user info in shares, members, etc)
+create policy "users_select_all"
+on users for select
+to authenticated
+using (true);
+
+-- only allow users to update their own account info
+create policy "users_update_self_only"
+on users for update
+to authenticated
+using ( (select auth.uid()) = id )
+with check ( (select auth.uid()) = id );
+
+-- only allow users to delete their own account
+create policy "users_delete_self_only"
+on users for delete
+to authenticated
+using ( (select auth.uid()) = id );
+
+-- only allow members to see their own tenant
+create policy "tenants_select_members_only"
+on tenants for select
+to authenticated
+using (
+    exists (
+        select 1 from tenant_members tm
+        where tm.tenant_id = tenants.id
+        and tm.user_id = (select auth.uid())
+    )
+);
+
+-- only Owner can update tenant info
+create policy "tenants_update_owner_only"
+on tenants for update
+to authenticated
+using (
+    exists (
+        select 1 from tenant_members tm
+        where tm.tenant_id = tenants.id
+        and tm.user_id = (select auth.uid())
+        and tm.role = 'owner'
+    )
+)
+with check (
+    exists (
+        select 1 from tenant_members tm
+        where tm.tenant_id = tenants.id
+        and tm.user_id = (select auth.uid())
+        and tm.role = 'owner'
+    )
+);
 
 
 
