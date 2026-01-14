@@ -232,17 +232,11 @@ on users for delete
 to authenticated
 using ( (select auth.uid()) = id );
 
--- only allow members to see their own tenant
-create policy "tenants_select_members_only"
+-- allow authenticated users to see tenants
+create policy "tenants_select_public"
 on tenants for select
 to authenticated
-using (
-    exists (
-        select 1 from tenant_members tm
-        where tm.tenant_id = tenants.id
-        and tm.user_id = (select auth.uid())
-    )
-);
+using (true);
 
 -- only Owner can update tenant info
 create policy "tenants_update_owner_only"
