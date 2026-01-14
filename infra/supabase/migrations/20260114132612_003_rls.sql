@@ -168,11 +168,14 @@ create policy "tenant_members_select_same_tenant"
 on tenant_members
 for select
 using (
-    exists (
-        select 1
-        from tenant_members self
-        where self.tenant_id = tenant_members.tenant_id
-          and self.user_id = (select auth.uid())
+    -- User can see their own memberships
+    user_id = auth.uid() 
+    OR 
+    -- User can see memberships of tenants they belong to
+    tenant_id IN (
+        SELECT tm.tenant_id 
+        FROM tenant_members tm 
+        WHERE tm.user_id = auth.uid()
     )
 );
 
