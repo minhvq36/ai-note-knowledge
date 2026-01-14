@@ -20,6 +20,7 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_owner_count int;

@@ -7,6 +7,7 @@ create or replace function public.create_tenant(
 returns uuid
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_tenant_id uuid;

@@ -22,6 +22,7 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_request tenant_join_requests%rowtype;

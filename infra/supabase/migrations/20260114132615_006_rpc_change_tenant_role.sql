@@ -19,6 +19,7 @@ create or replace function public.change_tenant_member_role(
 returns void
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_owner_count int;

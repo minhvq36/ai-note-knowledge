@@ -12,12 +12,15 @@ create table audit_logs (
 
 /*TO TEST*/
 /* Prevent update & delete: audit logs are append-only */
-create or replace function prevent_audit_log_mutation()
-returns trigger as $$
+create or replace function public.prevent_audit_log_mutation()
+returns trigger 
+language plpgsql
+set search_path = public
+as $$
 begin
     raise exception 'audit_logs are immutable';
 end;
-$$ language plpgsql;
+$$;
 
 /* Block UPDATE */
 create trigger audit_logs_no_update
@@ -37,3 +40,5 @@ on audit_logs (tenant_id, created_at desc);
 
 create index idx_audit_logs_action
 on audit_logs (action);
+
+alter table audit_logs enable row level security;
