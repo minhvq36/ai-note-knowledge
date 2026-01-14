@@ -55,6 +55,8 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
@@ -62,6 +64,8 @@ begin
         v_tenant_id,
         (select auth.uid()),
         'tenant.create',
+        'tenant',
+        v_tenant_id,
         jsonb_build_object(
             'tenant_name', p_name
         ),
