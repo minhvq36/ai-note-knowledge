@@ -1,4 +1,5 @@
 /*TO TEST*/
+-- TO CHANGE: To trigger more metadata to public.users
 
 create or replace function public.handle_new_auth_user()
 returns trigger
@@ -13,12 +14,10 @@ begin
 
     insert into public.users (
         id,
-        username,
         email
     )
     values (
         new.id, -- auth.users.id new record that triggered this
-        split_part(new.email, '@', 1),
         new.email
     )
     on conflict (id) do nothing; -- in case of retries

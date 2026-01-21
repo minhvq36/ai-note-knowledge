@@ -7,6 +7,41 @@ docker-compose -f infra/docker-compose.yml up -d
                     └── NoteShares
 
 
+# User LifeCycle Usecases
+```
+graph LR
+    Anon((Anonymous User))
+    AuthU((Authenticated User))
+
+    subgraph "Authentication (Auth Level)"
+        UC1("Sign Up with Email")
+        UC2("Verify Email")
+        UC3("Sign In / Login")
+    end
+
+    subgraph "Account (Profile Level)"
+        UC4("Update Profile")
+        UC5("Delete Account")
+    end
+
+    subgraph "System Entry"
+        UC6("Create First Tenant")
+    end
+
+    Anon --> UC1
+    UC1 --> UC2
+    UC2 --> UC3
+    UC3 --> AuthU
+    
+    AuthU --> UC4
+    AuthU --> UC5
+    AuthU --> UC6
+
+    %% Guard Rules
+    UC5 -.->|"[Check: Not Last Owner]"| UC5
+```
+
+
 # Tenant System Usecases
 ```
 graph TD

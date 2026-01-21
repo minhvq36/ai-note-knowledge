@@ -225,23 +225,11 @@ alter table tenants enable row level security;
 alter table users enable row level security;
 
 -- allow authenticated users to see other users (for displaying user info in shares, members, etc)
+-- TODO: refine this policy if needed to limit exposed user info preventing leak emails or private info
 create policy "users_select_all"
 on users for select
 to authenticated
 using (true);
-
--- only allow users to update their own account info
-create policy "users_update_self_only"
-on users for update
-to authenticated
-using ( (select auth.uid()) = id )
-with check ( (select auth.uid()) = id );
-
--- only allow users to delete their own account
-create policy "users_delete_self_only"
-on users for delete
-to authenticated
-using ( (select auth.uid()) = id );
 
 -- allow authenticated users to see tenants
 create policy "tenants_select_public"
