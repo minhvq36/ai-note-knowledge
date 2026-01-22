@@ -1,10 +1,11 @@
 create table tenants (
     id uuid primary key default gen_random_uuid(),
     name varchar(255) not null,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
 );
 
-create table users (
+create table users ( -- bsoring user table synced with auth.users
     id uuid primary key, -- synced from auth.users.id
     email varchar(255) not null,
     created_at timestamptz not null default now()
