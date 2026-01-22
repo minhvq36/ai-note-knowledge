@@ -57,5 +57,8 @@ where status = 'pending';
 CREATE INDEX idx_notes_tenant_id ON public.notes(tenant_id);
 CREATE INDEX idx_notes_owner_id ON public.notes(owner_id);
 CREATE INDEX idx_tenant_members_user_id ON public.tenant_members(user_id);
+CREATE INDEX idx_tenant_members_tenant_id_user_id ON public.tenant_members(tenant_id, user_id);
+CREATE INDEX idx_note_shares_user_id ON public.note_shares(user_id);
+CREATE INDEX idx_note_shares_note_id_user_id ON public.note_shares(note_id, user_id);
 CREATE INDEX idx_tenant_join_requests_tenant_id ON public.tenant_join_requests(tenant_id);
 CREATE INDEX idx_tenant_join_requests_user_id ON public.tenant_join_requests(user_id);

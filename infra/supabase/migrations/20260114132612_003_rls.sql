@@ -65,7 +65,7 @@ as $$
     select exists (
         select 1
         from notes n
-        join tenant_members tm
+        join tenant_members tm -- must be member of the tenant
           on tm.tenant_id = n.tenant_id
          and tm.user_id = auth.uid()
         left join note_shares ns
@@ -74,10 +74,7 @@ as $$
         where n.id = p_note_id
           and (
                 n.owner_id = auth.uid()
-                or (
-                    ns.permission = 'write'
-                    and tm.user_id = auth.uid()
-                )
+                or ns.permission = 'write'
           )
     );
 $$;
