@@ -1,30 +1,46 @@
 alter table notes enable row level security;
 alter table note_shares enable row level security;
 
+/*
+Check whether the current user can read a note.
+
+Access is granted if:
+- User belongs to the tenant AND
+- User is:
+  - tenant owner
+  - tenant admin
+  - note owner
+  - or shared user
+*/
+create or replace function public.check_note_access(p_note_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1
+        from notes n
+        join tenant_members tm
+          on tm.tenant_id = n.tenant_id
+         and tm.user_id = auth.uid()
+        left join note_shares ns
+          on ns.note_id = n.id
+         and ns.user_id = auth.uid()
+        where n.id = p_note_id
+          and (
+              tm.role in ('owner', 'admin') -- tenant-level privilege
+              or n.owner_id = auth.uid()    -- note owner
+              or ns.user_id is not null     -- shared user
+          )
+    );
+$$;
 -- RLS for notes table
-create policy "notes_select_member_owner_or_shared"
+create policy "notes_select"
 on notes
 for select
 using (
-    /* User must be a member of the tenant */
-    exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = notes.tenant_id
-          and tm.user_id = (select auth.uid())
-    )
-    and (
-        /* Owner can always read */
-        owner_id = (select auth.uid())
-        or
-        /* Shared user can read */
-        exists (
-            select 1
-            from note_shares ns
-            where ns.note_id = notes.id
-              and ns.user_id = (select auth.uid())
-        )
-    )
+    check_note_access(id)
 );
 
 create policy "notes_insert_member_as_owner"
@@ -40,26 +56,36 @@ with check (
     )
 );
 
+create or replace function public.check_note_write_access(p_note_id uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+    select exists (
+        select 1
+        from notes n
+        join tenant_members tm
+          on tm.tenant_id = n.tenant_id
+         and tm.user_id = auth.uid()
+        left join note_shares ns
+          on ns.note_id = n.id
+         and ns.user_id = auth.uid()
+        where n.id = p_note_id
+          and (
+                n.owner_id = auth.uid()
+                or (
+                    ns.permission = 'write'
+                    and tm.user_id = auth.uid()
+                )
+          )
+    );
+$$;
 create policy "notes_update_owner_or_shared_write"
 on notes
 for update
 using (
-    exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = notes.tenant_id
-          and tm.user_id = (select auth.uid())
-    )
-    and (
-        owner_id = (select auth.uid())
-        or exists (
-            select 1
-            from note_shares ns
-            where ns.note_id = notes.id
-              and ns.user_id = (select auth.uid())
-              and ns.permission = 'write'
-        )
-    )
+    check_note_write_access(id)
 )
 with check (
     /* Prevent tenant or owner hijacking */
@@ -89,7 +115,7 @@ using (
         where tm.tenant_id = notes.tenant_id
           and tm.user_id = (select auth.uid())
     )
-);
+); -- TODO: consider allowing tenant admins to delete notes or soft-delete
 
 -- RLS for note_shares table
 create policy "note_shares_select_owner_or_shared"
