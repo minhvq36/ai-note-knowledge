@@ -40,6 +40,14 @@ create policy "notes_select"
 on notes
 for select
 using (
+    owner_id = (select auth.uid())
+    and exists (
+        select 1
+        from tenant_members tm
+        where tm.tenant_id = notes.tenant_id
+          and tm.user_id = (select auth.uid())
+    )
+    or
     check_note_access(id)
 );
 
