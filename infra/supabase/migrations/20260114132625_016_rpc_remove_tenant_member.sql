@@ -37,65 +37,86 @@ declare
     v_caller_role text;
     v_target_role text;
 begin
-    /* Ensure caller is authenticated */
+    /*
+    Ensure caller is authenticated.
+    auth.uid() must exist in session.
+    */
     if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
-    /* Fetch caller role */
-    select role
+    /*
+    Fetch caller role within tenant.
+    */
+    select tm.role
     into v_caller_role
-    from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = (select auth.uid());
+    from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = (select auth.uid());
 
     if v_caller_role is null then
         raise exception 'Caller is not a member of this tenant';
     end if;
 
-    /* Only owner or admin can remove someone */
+    /*
+    Only owner or admin can remove members.
+    */
     if v_caller_role not in ('owner', 'admin') then
         raise exception 'Only tenant owner/admin can remove members';
     end if;
 
-    /* Fetch target role */
-    select role
+    /*
+    Fetch target role and lock membership row
+    to prevent concurrent remove / role change.
+    */
+    select tm.role
     into v_target_role
-    from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = p_target_user_id;
+    from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = p_target_user_id
+    for update;
 
     if v_target_role is null then
         raise exception 'Target user is not a member of this tenant';
     end if;
 
-    /* Role-based removal rules */
+    /*
+    Role-based removal rules.
+    Admin cannot remove owner or admin.
+    */
     if v_caller_role = 'admin' then
         if v_target_role in ('owner', 'admin') then
             raise exception 'Admin cannot remove owner or admin';
         end if;
     end if;
 
-    /* If target is owner, ensure not last owner */
+    /*
+    Last-owner protection.
+    Lock owner rows to avoid race conditions.
+    */
     if v_target_role = 'owner' then
-        select count(*) 
+        select count(*)
         into v_owner_count
-        from tenant_members
-        where tenant_id = p_tenant_id
-          and role = 'owner'
-        for update; -- lock owner rows to prevent race
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner'
+        for update;
 
         if v_owner_count = 1 then
             raise exception 'Cannot remove the last owner of the tenant';
         end if;
     end if;
 
-    /* Remove membership */
-    delete from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = p_target_user_id;
+    /*
+    Remove membership.
+    */
+    delete from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = p_target_user_id;
 
-    /* Audit log */
+    /*
+    Write audit log.
+    */
     insert into audit_logs (
         tenant_id,
         actor_id,
@@ -119,9 +140,13 @@ begin
         now()
     );
 
+    /*
+    Return result.
+    */
     tenant_id := p_tenant_id;
     removed_user_id := p_target_user_id;
     result := 'removed';
+
     return next;
     return;
 end;
