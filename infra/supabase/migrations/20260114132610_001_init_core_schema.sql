@@ -22,7 +22,7 @@ create table tenant_members (
 create table notes (
     id uuid primary key default gen_random_uuid(),
     tenant_id uuid not null references tenants(id) on delete cascade, -- note belongs to which tenant
-    owner_id uuid references users(id) on delete set null,
+    owner_id uuid references users(id) on delete set null default auth.uid(),
     content text not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
