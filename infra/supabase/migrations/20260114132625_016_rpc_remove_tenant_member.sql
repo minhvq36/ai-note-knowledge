@@ -8,6 +8,7 @@ Remove rules:
 - Admin: can remove member, cannot remove owner, cannot remove admin
 - Owner: can remove anyone except last owner, can downgrade roles
 - Last owner protection always enforced
+- Cannot self-remove via this function (use leave_tenant instead)
 
 Rules / Cases:
 1. Caller must be authenticated.
@@ -149,7 +150,6 @@ begin
         'user',
         p_target_user_id,
         jsonb_build_object(
-            'removed_user_id', p_target_user_id,
             'caller_role', v_caller_role,
             'target_role', v_target_role
         ),
