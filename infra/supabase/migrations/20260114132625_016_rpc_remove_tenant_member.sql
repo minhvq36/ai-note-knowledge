@@ -39,10 +39,17 @@ declare
 begin
     /*
     Ensure caller is authenticated.
-    auth.uid() must exist in session.
     */
     if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
+    end if;
+
+    /*
+    Prevent self-removal.
+    Self-removal must use leave_tenant().
+    */
+    if p_target_user_id = (select auth.uid()) then
+        raise exception 'Self removal is not allowed here. Use leave_tenant()';
     end if;
 
     /*
@@ -66,8 +73,7 @@ begin
     end if;
 
     /*
-    Fetch target role and lock membership row
-    to prevent concurrent remove / role change.
+    Fetch target role and lock target membership row.
     */
     select tm.role
     into v_target_role
@@ -84,23 +90,33 @@ begin
     Role-based removal rules.
     Admin cannot remove owner or admin.
     */
-    if v_caller_role = 'admin' then
-        if v_target_role in ('owner', 'admin') then
-            raise exception 'Admin cannot remove owner or admin';
-        end if;
+    if v_caller_role = 'admin'
+       and v_target_role in ('owner', 'admin') then
+        raise exception 'Admin cannot remove owner or admin';
     end if;
 
     /*
     Last-owner protection.
-    Lock owner rows to avoid race conditions.
+    Lock all owner rows first, then count.
     */
     if v_target_role = 'owner' then
-        select count(*)
-        into v_owner_count
+        /*
+        Lock owner rows to avoid race conditions.
+        */
+        perform 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
           and tm.role = 'owner'
         for update;
+
+        /*
+        Count owners after lock.
+        */
+        select count(*)
+        into v_owner_count
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner';
 
         if v_owner_count = 1 then
             raise exception 'Cannot remove the last owner of the tenant';
