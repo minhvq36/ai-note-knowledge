@@ -31,10 +31,12 @@ begin
     end if;
 
     /* Ensure tenant exists */
-    if not exists (
-        select 1 from tenants t
-        where t.id = p_tenant_id
-    ) then
+    perform 1
+    from tenants t
+    where t.id = p_tenant_id
+    for update;
+
+    if not found then
         raise exception 'Tenant not found';
     end if;
 
@@ -50,20 +52,29 @@ begin
     end if;
 
     /* Lock all owner rows and count */
+    perform 1
+    from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.role = 'owner'
+    for update;
+
+    /*
+    Count owners after lock.
+    */
     select count(*)
     into v_owner_count
     from tenant_members tm
     where tm.tenant_id = p_tenant_id
-      and tm.role = 'owner'
-    for update; -- prevent race condition
+      and tm.role = 'owner';
 
     if v_owner_count > 1 then
-        raise exception 'Cannot delete tenant: multiple owners exist, only last owner can delete';
+        raise exception
+            'Cannot delete tenant: multiple owners exist, only last owner can delete';
     end if;
 
     /* Delete tenant row (cascade deletes tenant_members, notes, note_shares, join_requests) */
-    delete from tenants
-    where id = p_tenant_id;
+    delete from tenants t
+    where t.id = p_tenant_id;
 
     /* Audit log */
     insert into audit_logs (

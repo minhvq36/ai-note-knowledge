@@ -49,12 +49,24 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
+        /*
+        Lock all owner rows of this tenant
+        to prevent concurrent owner leave/demotion.
+        */
+        perform 1
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner'
+        for update;
+
+        /*
+        Count owners after lock.
+        */
         select count(*)
         into v_owner_count
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.role = 'owner'
-        for update; -- lock owner rows to prevent race
+          and tm.role = 'owner';
 
         if v_owner_count = 1 then
             raise exception 'Cannot leave tenant as the last owner';
@@ -62,9 +74,9 @@ begin
     end if;
 
     /* Remove membership */
-    delete from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = (select auth.uid());
+    delete from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = (select auth.uid());
 
     /* Audit log */
     insert into audit_logs (

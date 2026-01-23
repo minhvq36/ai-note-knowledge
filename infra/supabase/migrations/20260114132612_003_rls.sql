@@ -64,7 +64,11 @@ with check (
     )
 );
 
-create or replace function public.check_note_write_access(p_note_id uuid)
+create or replace function public.check_note_write_access(
+    p_note_id uuid,
+    p_tenant_id uuid,
+    p_owner_id uuid
+)
 returns boolean
 language sql
 security definer
@@ -72,17 +76,15 @@ set search_path = public
 as $$
     select exists (
         select 1
-        from notes n
-        join tenant_members tm -- must be member of the tenant
-          on tm.tenant_id = n.tenant_id
-         and tm.user_id = auth.uid()
-        left join note_shares ns
-          on ns.note_id = n.id
+        from tenant_members tm
+        left join note_shares ns 
+          on ns.note_id = p_note_id 
          and ns.user_id = auth.uid()
-        where n.id = p_note_id
+        where tm.tenant_id = p_tenant_id 
+          and tm.user_id = auth.uid() -- Buộc phải còn trong Tenant
           and (
-                n.owner_id = auth.uid()
-                or ns.permission = 'write'
+              p_owner_id = auth.uid() 
+              or ns.permission = 'write'
           )
     );
 $$;
@@ -90,24 +92,9 @@ create policy "notes_update_owner_or_shared_write"
 on notes
 for update
 using (
-    check_note_write_access(id)
-)
-with check (
-    /* Prevent tenant or owner hijacking */
-    tenant_id = (
-        select old.tenant_id
-        from notes old
-        where old.id = notes.id
-    ) -- prevent changing tenant_id
-    and (
-        owner_id is null -- allow orphaned notes when owner is deleted
-        or owner_id = (
-            select old.owner_id
-            from notes old
-            where old.id = notes.id -- prevent changing owner_id
-        )
-    )
+    check_note_write_access(id, tenant_id, owner_id)
 );
+-- TODO: add revoke to prevent changing owner_id or tenant_id on update
 
 create policy "notes_delete_owner_only"
 on notes
@@ -154,26 +141,6 @@ with check (
         join tenant_members target
           on target.tenant_id = n.tenant_id
          and target.user_id = note_shares.user_id
-        where n.id = note_shares.note_id
-          and n.owner_id = (select auth.uid())
-    )
-);
-
-create policy "note_shares_update_owner_only"
-on note_shares
-for update
-using (
-    exists (
-        select 1
-        from notes n
-        where n.id = note_shares.note_id
-          and n.owner_id = (select auth.uid())
-    )
-)
-with check (
-    exists (
-        select 1
-        from notes n
         where n.id = note_shares.note_id
           and n.owner_id = (select auth.uid())
     )
