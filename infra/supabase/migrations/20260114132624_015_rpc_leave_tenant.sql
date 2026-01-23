@@ -21,12 +21,13 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_owner_count int;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -35,7 +36,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
     ) then
         raise exception 'You are not a member of this tenant';
     end if;
@@ -45,15 +46,27 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
+        /*
+        Lock all owner rows of this tenant
+        to prevent concurrent owner leave/demotion.
+        */
+        perform 1
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner'
+        for update;
+
+        /*
+        Count owners after lock.
+        */
         select count(*)
         into v_owner_count
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.role = 'owner'
-        for update; -- lock owner rows to prevent race
+          and tm.role = 'owner';
 
         if v_owner_count = 1 then
             raise exception 'Cannot leave tenant as the last owner';
@@ -61,30 +74,34 @@ begin
     end if;
 
     /* Remove membership */
-    delete from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = auth.uid();
+    delete from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = (select auth.uid());
 
     /* Audit log */
     insert into audit_logs (
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.member.leave',
+        'user',
+        (select auth.uid()),
         jsonb_build_object(
-            'user_id', auth.uid()
+            'user_id', (select auth.uid())
         ),
         now()
     );
 
     tenant_id := p_tenant_id;
-    user_id := auth.uid();
+    user_id := (select auth.uid());
     result := 'left';
     return next;
     return;

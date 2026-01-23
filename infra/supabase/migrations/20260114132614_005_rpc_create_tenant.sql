@@ -7,12 +7,13 @@ create or replace function public.create_tenant(
 returns uuid
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_tenant_id uuid;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -44,7 +45,7 @@ begin
     )
     values (
         v_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'owner',
         now()
     );
@@ -54,13 +55,17 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
     values (
         v_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.create',
+        'tenant',
+        v_tenant_id,
         jsonb_build_object(
             'tenant_name', p_name
         ),

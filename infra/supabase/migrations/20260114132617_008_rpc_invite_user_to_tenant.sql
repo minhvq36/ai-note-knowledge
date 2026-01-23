@@ -21,12 +21,13 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_request_id uuid;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -44,7 +45,7 @@ begin
         select 1
         from tenant_members tm
         where tm.tenant_id = p_tenant_id
-          and tm.user_id = auth.uid()
+          and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     ) then
         raise exception 'Permission denied';
@@ -114,7 +115,7 @@ begin
         gen_random_uuid(),
         p_tenant_id,
         p_target_user_id,
-        auth.uid(),
+        (select auth.uid()),
         'invite',
         'pending',
         now()
@@ -127,13 +128,17 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.invite.create',
+        'tenant_join_request',
+        v_request_id,
         jsonb_build_object(
             'request_id', v_request_id,
             'target_user_id', p_target_user_id

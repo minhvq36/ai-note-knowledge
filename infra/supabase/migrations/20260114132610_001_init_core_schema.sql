@@ -1,12 +1,12 @@
 create table tenants (
     id uuid primary key default gen_random_uuid(),
     name varchar(255) not null,
-    created_at timestamptz not null default now()
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
 );
 
-create table users (
+create table users ( -- bsoring user table synced with auth.users
     id uuid primary key, -- synced from auth.users.id
-    username varchar(255) not null,
     email varchar(255) not null,
     created_at timestamptz not null default now()
 );
@@ -22,7 +22,7 @@ create table tenant_members (
 create table notes (
     id uuid primary key default gen_random_uuid(),
     tenant_id uuid not null references tenants(id) on delete cascade, -- note belongs to which tenant
-    owner_id uuid references users(id) on delete set null,
+    owner_id uuid references users(id) on delete set null default auth.uid(),
     content text not null,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
@@ -52,3 +52,13 @@ create table tenant_join_requests (
 create unique index uq_tenant_user_active_request -- prevent duplicate active requests
 on tenant_join_requests (tenant_id, user_id)
 where status = 'pending';
+
+-- Foreign Key Indexes for Performance
+CREATE INDEX idx_notes_tenant_id ON public.notes(tenant_id);
+CREATE INDEX idx_notes_owner_id ON public.notes(owner_id);
+CREATE INDEX idx_tenant_members_user_id ON public.tenant_members(user_id);
+CREATE INDEX idx_tenant_members_tenant_id_user_id ON public.tenant_members(tenant_id, user_id);
+CREATE INDEX idx_note_shares_user_id ON public.note_shares(user_id);
+CREATE INDEX idx_note_shares_note_id_user_id ON public.note_shares(note_id, user_id);
+CREATE INDEX idx_tenant_join_requests_tenant_id ON public.tenant_join_requests(tenant_id);
+CREATE INDEX idx_tenant_join_requests_user_id ON public.tenant_join_requests(user_id);

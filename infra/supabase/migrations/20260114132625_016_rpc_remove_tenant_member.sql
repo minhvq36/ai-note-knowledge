@@ -8,6 +8,7 @@ Remove rules:
 - Admin: can remove member, cannot remove owner, cannot remove admin
 - Owner: can remove anyone except last owner, can downgrade roles
 - Last owner protection always enforced
+- Cannot self-remove via this function (use leave_tenant instead)
 
 Rules / Cases:
 1. Caller must be authenticated.
@@ -30,93 +31,138 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_owner_count int;
     v_caller_role text;
     v_target_role text;
 begin
-    /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    /*
+    Ensure caller is authenticated.
+    */
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
-    /* Fetch caller role */
-    select role
+    /*
+    Prevent self-removal.
+    Self-removal must use leave_tenant().
+    */
+    if p_target_user_id = (select auth.uid()) then
+        raise exception 'Self removal is not allowed here. Use leave_tenant()';
+    end if;
+
+    /*
+    Fetch caller role within tenant.
+    */
+    select tm.role
     into v_caller_role
-    from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = auth.uid();
+    from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = (select auth.uid());
 
     if v_caller_role is null then
         raise exception 'Caller is not a member of this tenant';
     end if;
 
-    /* Only owner or admin can remove someone */
+    /*
+    Only owner or admin can remove members.
+    */
     if v_caller_role not in ('owner', 'admin') then
         raise exception 'Only tenant owner/admin can remove members';
     end if;
 
-    /* Fetch target role */
-    select role
+    /*
+    Fetch target role and lock target membership row.
+    */
+    select tm.role
     into v_target_role
-    from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = p_target_user_id;
+    from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = p_target_user_id
+    for update;
 
     if v_target_role is null then
         raise exception 'Target user is not a member of this tenant';
     end if;
 
-    /* Role-based removal rules */
-    if v_caller_role = 'admin' then
-        if v_target_role in ('owner', 'admin') then
-            raise exception 'Admin cannot remove owner or admin';
-        end if;
+    /*
+    Role-based removal rules.
+    Admin cannot remove owner or admin.
+    */
+    if v_caller_role = 'admin'
+       and v_target_role in ('owner', 'admin') then
+        raise exception 'Admin cannot remove owner or admin';
     end if;
 
-    /* If target is owner, ensure not last owner */
+    /*
+    Last-owner protection.
+    Lock all owner rows first, then count.
+    */
     if v_target_role = 'owner' then
-        select count(*) 
+        /*
+        Lock owner rows to avoid race conditions.
+        */
+        perform 1
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner'
+        for update;
+
+        /*
+        Count owners after lock.
+        */
+        select count(*)
         into v_owner_count
-        from tenant_members
-        where tenant_id = p_tenant_id
-          and role = 'owner'
-        for update; -- lock owner rows to prevent race
+        from tenant_members tm
+        where tm.tenant_id = p_tenant_id
+          and tm.role = 'owner';
 
         if v_owner_count = 1 then
             raise exception 'Cannot remove the last owner of the tenant';
         end if;
     end if;
 
-    /* Remove membership */
-    delete from tenant_members
-    where tenant_id = p_tenant_id
-      and user_id = p_target_user_id;
+    /*
+    Remove membership.
+    */
+    delete from tenant_members tm
+    where tm.tenant_id = p_tenant_id
+      and tm.user_id = p_target_user_id;
 
-    /* Audit log */
+    /*
+    Write audit log.
+    */
     insert into audit_logs (
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
     values (
         p_tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.member.remove',
+        'user',
+        p_target_user_id,
         jsonb_build_object(
-            'removed_user_id', p_target_user_id,
             'caller_role', v_caller_role,
             'target_role', v_target_role
         ),
         now()
     );
 
+    /*
+    Return result.
+    */
     tenant_id := p_tenant_id;
     removed_user_id := p_target_user_id;
     result := 'removed';
+
     return next;
     return;
 end;

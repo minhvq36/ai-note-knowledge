@@ -21,12 +21,13 @@ returns table (
 )
 language plpgsql
 security definer
+set search_path = public
 as $$
 declare
     v_request tenant_join_requests%rowtype;
 begin
     /* Ensure caller is authenticated */
-    if auth.uid() is null then
+    if (select auth.uid()) is null then
         raise exception 'Unauthenticated';
     end if;
 
@@ -51,14 +52,14 @@ begin
     end if;
 
     /* Ensure caller is the invited user */
-    if v_request.user_id <> auth.uid() then
+    if v_request.user_id <> (select auth.uid()) then
         raise exception 'Permission denied: only invited user can decline';
     end if;
 
     /* Decline the invite */
     update tenant_join_requests
     set status = 'rejected',
-        decided_by = auth.uid(),
+        decided_by = (select auth.uid()),
         decided_at = now()
     where id = p_request_id;
 
@@ -67,13 +68,17 @@ begin
         tenant_id,
         actor_id,
         action,
+        target_type,
+        target_id,
         metadata,
         created_at
     )
     values (
         v_request.tenant_id,
-        auth.uid(),
+        (select auth.uid()),
         'tenant.invite.decline',
+        'tenant_join_request',
+        p_request_id,
         jsonb_build_object(
             'request_id', p_request_id,
             'user_id', v_request.user_id
