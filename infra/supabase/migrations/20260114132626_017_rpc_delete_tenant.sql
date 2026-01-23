@@ -73,8 +73,13 @@ begin
     end if;
 
     /* Delete tenant row (cascade deletes tenant_members, notes, note_shares, join_requests) */
-    delete from tenants t
-    where t.id = p_tenant_id;
+    -- delete from tenants t
+    -- where t.id = p_tenant_id;
+    update tenants
+    set deleted_at = now(),
+        deleted_by = auth.uid()
+    where id = p_tenant_id
+    and deleted_at is null;
 
     /* Audit log */
     insert into audit_logs (
