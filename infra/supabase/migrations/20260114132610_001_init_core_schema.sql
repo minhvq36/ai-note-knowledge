@@ -15,6 +15,7 @@ create table tenants (
         (deleted_at is null and deleted_by is null)
         or
         (deleted_at is not null)
+    )
 );
 
 create table tenant_members (
