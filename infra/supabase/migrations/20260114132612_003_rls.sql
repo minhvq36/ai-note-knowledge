@@ -196,27 +196,6 @@ using (
 -- RLS for tenant_join_requests table
 alter table tenant_join_requests enable row level security;
 
--- Allow users to create their own join requests
-create policy "tenant_join_request_insert_self"
-on tenant_join_requests -- insert on tenant_join_requests table
-for insert
-with check (
-    user_id = (select auth.uid())
-    and initiated_by = (select auth.uid())
-    and direction = 'join'
-    and exists (
-        select 1 from tenants 
-        where id = tenant_join_requests.tenant_id 
-        and deleted_at is null
-    )
-    and not exists (
-        select 1
-        from tenant_members tm
-        where tm.tenant_id = tenant_join_requests.tenant_id
-          and tm.user_id = (select auth.uid())
-    )
-);
-
 -- Allow users to see their own join requests or tenant admins to see requests
 create policy "tenant_join_request_select_self_or_tenant_admin"
 on tenant_join_requests for select
@@ -273,6 +252,7 @@ with check (
         and tm.user_id = (select auth.uid())
         and tm.role = 'owner'
     )
+    and deleted_at is null -- prevent updating already deleted tenants and delete by SQL update
 );
 
 
