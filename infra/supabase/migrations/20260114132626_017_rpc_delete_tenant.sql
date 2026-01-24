@@ -34,10 +34,11 @@ begin
     perform 1
     from tenants t
     where t.id = p_tenant_id
+        and t.deleted_at is null
     for update;
 
     if not found then
-        raise exception 'Tenant not found';
+        raise exception 'Tenant not found or deleted';
     end if;
 
     /* Ensure caller is an owner */
