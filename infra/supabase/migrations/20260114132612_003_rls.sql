@@ -146,6 +146,7 @@ with check (
         where n.id = note_shares.note_id
           and n.owner_id = (select auth.uid()) -- only note owner can share
           and n.deleted_at is null -- note is active
+          and and note_shares.user_id <> n.owner_id -- prevent owner sharing to self
     )
 );
 
