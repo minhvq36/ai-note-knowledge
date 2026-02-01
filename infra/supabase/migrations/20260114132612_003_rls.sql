@@ -115,7 +115,7 @@ with check (
 
 -- RLS for note_shares table
 -- CAUTION: make sure notes RLS is defined before note_shares RLS to avoid circular dependency
-create policy "note_shares_select_owner_or_shared"
+create policy "note_shares_select_owner_or_shared_or_tenant_admin"
 on note_shares
 for select
 using (
@@ -124,14 +124,21 @@ using (
         from notes n
         join tenant_members tm
           on tm.tenant_id = n.tenant_id
-         and tm.user_id = (select auth.uid()) -- member of the tenant
+         and tm.user_id = auth.uid()
         where n.id = note_shares.note_id
           and (
-              n.owner_id = (select auth.uid()) -- owner
-              or note_shares.user_id = (select auth.uid()) -- shared user
+              /* Case 1: note owner (sharer) */
+              n.owner_id = (select auth.uid())
+
+              /* Case 2: shared user (sharee) */
+              or note_shares.user_id = (select auth.uid())
+
+              /* Case 3: tenant admin / tenant owner */
+              or tm.role in ('admin', 'owner')
           )
     )
 );
+
 
 create policy "note_shares_insert_note_owner_only"
 on note_shares
@@ -146,7 +153,7 @@ with check (
         where n.id = note_shares.note_id
           and n.owner_id = (select auth.uid()) -- only note owner can share
           and n.deleted_at is null -- note is active
-          and and note_shares.user_id <> n.owner_id -- prevent owner sharing to self
+          and note_shares.user_id <> n.owner_id -- prevent owner sharing to self
     )
 );
 
