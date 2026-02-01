@@ -244,6 +244,7 @@ using (
         and tm.user_id = (select auth.uid())
         and tm.role = 'owner'
     )
+    and deleted_at is null -- prevent updating already deleted tenants
 )
 with check (
     exists (
