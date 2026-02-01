@@ -30,7 +30,7 @@ begin
 
     /* Prevent self-sharing */
     if p_target_user_id = auth.uid() then
-        raise exception 'Owner cannot share note to himself';
+        raise exception 'Cannot share self';
     end if;
 
     /* Validate permission */
