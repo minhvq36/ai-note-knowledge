@@ -27,12 +27,14 @@ begin
     end if;
 
     /* Ensure tenant exists */
-    if not exists (
-        select 1
-        from tenants t
-        where t.id = p_tenant_id
-    ) then
-        raise exception 'Tenant not found';
+    perform 1
+    from tenants t
+    where t.id = p_tenant_id
+        and t.deleted_at is null
+    for update;
+
+    if not found then
+        raise exception 'Tenant not found or deleted';
     end if;
 
     /* Prevent request if user is already a member */
