@@ -16,7 +16,7 @@ router = APIRouter(
 def change_member_role(
     tenant_id: str,
     user_id: str,
-    payload: dict,
+    payload: dict, # TO be replaced with a Pydantic model for better validation
     access_token: str = Depends(get_current_access_token),
 ):
     """
@@ -45,7 +45,7 @@ def change_member_role(
             target_user_id=user_id,
             new_role=new_role,
         )
-        return result
+        return result # TO CHECK WITH response shape and handle empty rowcount
     except DomainError as exc:
         raise to_http_error(exc)
 

@@ -43,53 +43,41 @@ class NotFound(DomainError):
     pass
 
 
-def map_db_error(error: Exception) -> DomainError:
+def map_db_error(exc: Exception) -> DomainError:
     """
-    Convert a raw Supabase/PostgREST error into a domain error.
-
-    This function:
-    - Does NOT raise HTTP exceptions
-    - Does NOT depend on FastAPI
-    - Centralizes all DB error interpretation logic
+    Map Supabase / PostgREST exceptions
+    into domain-specific errors.
     """
 
     """
-    Extract error message in a defensive way.
-    Supabase error objects may vary slightly by version.
+    Supabase PostgREST errors usually expose:
+    - status_code
+    - message
+    - details
     """
-    message = str(error).lower()
+
+    status_code = getattr(exc, "status_code", None)
+    message = str(exc).lower()
 
     """
-    Permission / RLS violations.
+    Permission / RLS errors.
     """
-    if "permission denied" in message or "rls" in message:
-        return PermissionDenied(
-            "Permission denied by database policy",
-            cause=error,
-        )
+    if status_code in (401, 403):
+        return PermissionDenied(message)
+
+    if "permission" in message or "rls" in message:
+        return PermissionDenied(message)
 
     """
-    Invariant violations enforced by RPC logic.
+    Invariant violations.
     """
-    if "last owner" in message or "invariant" in message:
-        return InvariantViolated(
-            "Database invariant violated",
-            cause=error,
-        )
+    if "last owner" in message:
+        return InvariantViolated(message)
 
     """
-    Missing resources.
+    Not found errors.
     """
-    if "not found" in message or "does not exist" in message:
-        return NotFound(
-            "Requested resource not found",
-            cause=error,
-        )
+    if status_code == 404:
+        return NotFound(message)
 
-    """
-    Fallback: wrap as generic domain error.
-    """
-    return DomainError(
-        "Unhandled database error",
-        cause=error,
-    )
+    return DomainError(message)

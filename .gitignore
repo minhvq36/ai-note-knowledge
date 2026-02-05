@@ -4,4 +4,5 @@ infra/supabase/.temp
 services/backend/scripts_local
 services/backend/.env
 
-services/backend/app/db/__pycache__/
+**/__pycache__/
+*.py[cod]
