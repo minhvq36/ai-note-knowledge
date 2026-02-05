@@ -1,3 +1,5 @@
 # AI agents
 .gemini/
 infra/supabase/.temp
+services/backend/scripts_local
+services/backend/.env

@@ -1,0 +1,7 @@
+# Python version 3.13.2
+
+fastapi==0.128.1
+uvicorn==0.40.0
+supabase==2.27.3
+python-dotenv==1.2.1
+pydantic-settings==2.12.0
