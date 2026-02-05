@@ -28,7 +28,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Ensure tenant exists */
@@ -39,7 +41,9 @@ begin
     for update;
 
     if not found then
-        raise exception 'Tenant not found or deleted';
+        raise exception using
+            message = 'Tenant not found or deleted',
+            detail = 'DB0101';
     end if;
 
     /* Caller must be owner or admin */
@@ -50,7 +54,9 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     ) then
-        raise exception 'Permission denied';
+        raise exception using
+            message = 'Permission denied',
+            detail = 'DB0311';
     end if;
 
     /* Target user must exist */
@@ -59,7 +65,9 @@ begin
         from users u
         where u.id = p_target_user_id
     ) then
-        raise exception 'Target user not found';
+        raise exception using
+            message = 'Target user not found',
+            detail = 'DB0310';
     end if;
 
     /* Prevent inviting an existing member */
@@ -69,7 +77,9 @@ begin
         where tm.tenant_id = p_tenant_id
           and tm.user_id = p_target_user_id
     ) then
-        raise exception 'User is already a tenant member';
+        raise exception using
+            message = 'User is already a tenant member',
+            detail = 'DB0204';
     end if;
 
     /* If there is a pending INVITE → idempotent return */

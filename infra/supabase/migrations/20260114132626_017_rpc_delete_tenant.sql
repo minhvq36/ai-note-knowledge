@@ -27,7 +27,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Ensure tenant exists */
@@ -38,7 +40,9 @@ begin
     for update;
 
     if not found then
-        raise exception 'Tenant not found or deleted';
+        raise exception using
+            message = 'Tenant not found or deleted',
+            detail = 'DB0101';
     end if;
 
     /* Ensure caller is an owner */
@@ -49,7 +53,9 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
-        raise exception 'Only tenant owner can delete tenant';
+        raise exception using
+            message = 'Only tenant owner can delete tenant',
+            detail = 'DB0102';
     end if;
 
     /* Lock all owner rows and count */
@@ -69,8 +75,9 @@ begin
       and tm.role = 'owner';
 
     if v_owner_count > 1 then
-        raise exception
-            'Cannot delete tenant: multiple owners exist, only last owner can delete';
+        raise exception using
+            message = 'Cannot delete tenant: multiple owners exist, only last owner can delete',
+            detail = 'DB0103';
     end if;
 
     /* Delete tenant row (cascade deletes tenant_members, notes, note_shares, join_requests) */

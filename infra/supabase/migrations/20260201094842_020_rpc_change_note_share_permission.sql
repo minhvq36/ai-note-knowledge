@@ -25,17 +25,23 @@ as $$
 begin
     /* Ensure authenticated */
     if auth.uid() is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Prevent self-sharing */
     if p_target_user_id = auth.uid() then
-        raise exception 'Cannot share self';
+        raise exception using
+            message = 'Cannot share self',
+            detail = 'DB0501';
     end if;
 
     /* Validate permission */
     if p_new_permission not in ('read','write') then
-        raise exception 'Invalid permission';
+        raise exception using
+            message = 'Invalid permission',
+            detail = 'DB0502';
     end if;
 
     /* Lock note row */
@@ -49,7 +55,9 @@ begin
     for update;
 
     if not found then
-        raise exception 'Note not found or deleted';
+        raise exception using
+            message = 'Note not found or deleted',
+            detail = 'DB0505';
     end if;
 
     /* Ensure caller is note owner */
@@ -59,7 +67,9 @@ begin
         where id = p_note_id
           and owner_id = auth.uid()
     ) then
-        raise exception 'Only note owner can change sharing permission';
+        raise exception using
+            message = 'Only note owner can change sharing permission',
+            detail = 'DB0504';
     end if;
 
     /* Ensure target is tenant member */
@@ -71,7 +81,9 @@ begin
          and tm.user_id = p_target_user_id
         where n.id = p_note_id
     ) then
-        raise exception 'Target user is not tenant member';
+        raise exception using
+            message = 'Target user is not tenant member',
+            detail = 'DB0503';
     end if;
 
     /* Revoke old share (if any) */

@@ -30,14 +30,18 @@ begin
     Ensure caller is authenticated.
     */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /*
     Validate role.
     */
     if p_new_role not in ('owner', 'admin', 'member') then
-        raise exception 'Invalid role: %', p_new_role;
+        raise exception using
+            message = 'Invalid role: ' || p_new_role,
+            detail = 'DB0205';
     end if;
 
     /*
@@ -50,7 +54,9 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role = 'owner'
     ) then
-        raise exception 'Only tenant owner can change roles';
+        raise exception using
+            message = 'Only tenant owner can change roles',
+            detail = 'DB0201';
     end if;
 
     /*
@@ -64,7 +70,9 @@ begin
     for update;
 
     if not found then
-        raise exception 'Target user is not a member of the tenant';
+        raise exception using
+            message = 'Target user is not a member of the tenant',
+            detail = 'DB0202';
     end if;
 
     /*
@@ -96,7 +104,9 @@ begin
           and tm.role = 'owner';
 
         if v_owner_count = 1 then
-            raise exception 'Cannot downgrade the last owner of the tenant';
+            raise exception using
+                message = 'Cannot downgrade the last owner of the tenant',
+                detail = 'DB0203';
         end if;
     end if;
 

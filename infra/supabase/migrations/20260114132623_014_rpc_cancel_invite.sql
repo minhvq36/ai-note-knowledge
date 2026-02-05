@@ -29,7 +29,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Fetch the invite request */
@@ -39,17 +41,23 @@ begin
     where id = p_request_id;
 
     if not found then
-        raise exception 'Invite request not found';
+        raise exception using
+            message = 'Invite request not found',
+            detail = 'DB0301';
     end if;
 
     /* Ensure request is an INVITE request */
     if v_request.direction <> 'invite' then
-        raise exception 'Cannot cancel join request';
+        raise exception using
+            message = 'Cannot cancel join request',
+            detail = 'DB0302';
     end if;
 
     /* Ensure request is pending */
     if v_request.status <> 'pending' then
-        raise exception 'Only pending invites can be cancelled';
+        raise exception using
+            message = 'Only pending invites can be cancelled',
+            detail = 'DB0304';
     end if;
 
     /* Ensure caller is owner or admin of the tenant */
@@ -60,7 +68,9 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     ) then
-        raise exception 'Permission denied: only tenant owner/admin can cancel';
+        raise exception using
+            message = 'Permission denied: only tenant owner/admin can cancel',
+            detail = 'DB0312';
     end if;
 
     /* Cancel the invite */

@@ -14,12 +14,16 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Basic validation */
     if p_name is null or length(trim(p_name)) = 0 then
-        raise exception 'Tenant name must not be empty';
+        raise exception using
+            message = 'Tenant name must not be empty',
+            detail = 'DB0104';
     end if;
 
     /* Create tenant */

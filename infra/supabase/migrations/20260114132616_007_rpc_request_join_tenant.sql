@@ -23,7 +23,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Ensure tenant exists */
@@ -34,7 +36,9 @@ begin
     for update;
 
     if not found then
-        raise exception 'Tenant not found or deleted';
+        raise exception using
+            message = 'Tenant not found or deleted',
+            detail = 'DB0101';
     end if;
 
     /* Prevent request if user is already a member */
@@ -44,7 +48,9 @@ begin
         where tm.tenant_id = p_tenant_id
           and tm.user_id = (select auth.uid())
     ) then
-        raise exception 'User is already a tenant member';
+        raise exception using
+            message = 'User is already a tenant member',
+            detail = 'DB0204';
     end if;
 
     /* If there is a pending JOIN request → idempotent return */

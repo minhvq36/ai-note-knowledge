@@ -28,7 +28,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Fetch the join request */
@@ -38,17 +40,23 @@ begin
     where id = p_request_id;
 
     if not found then
-        raise exception 'Join request not found';
+        raise exception using
+            message = 'Join request not found',
+            detail = 'DB0301';
     end if;
 
     /* Ensure request is a JOIN request */
     if v_request.direction <> 'join' then
-        raise exception 'Cannot reject invite request';
+        raise exception using
+            message = 'Cannot reject invite request',
+            detail = 'DB0302';
     end if;
 
     /* Ensure request is pending */
     if v_request.status <> 'pending' then
-        raise exception 'Only pending requests can be rejected';
+        raise exception using
+            message = 'Only pending requests can be rejected',
+            detail = 'DB0304';
     end if;
 
     /* Ensure caller is owner/admin of the tenant */
@@ -59,7 +67,9 @@ begin
           and tm.user_id = (select auth.uid())
           and tm.role in ('owner', 'admin')
     ) then
-        raise exception 'Permission denied';
+        raise exception using
+            message = 'Permission denied',
+            detail = 'DB0311';
     end if;
 
     /* Reject the request */

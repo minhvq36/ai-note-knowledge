@@ -42,7 +42,9 @@ begin
     Ensure caller is authenticated.
     */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /*
@@ -50,7 +52,9 @@ begin
     Self-removal must use leave_tenant().
     */
     if p_target_user_id = (select auth.uid()) then
-        raise exception 'Self removal is not allowed here. Use leave_tenant()';
+        raise exception using
+            message = 'Self removal is not allowed here. Use leave_tenant()',
+            detail = 'DB0206';
     end if;
 
     /*
@@ -63,14 +67,18 @@ begin
       and tm.user_id = (select auth.uid());
 
     if v_caller_role is null then
-        raise exception 'Caller is not a member of this tenant';
+        raise exception using
+            message = 'Caller is not a member of this tenant',
+            detail = 'DB0208';
     end if;
 
     /*
     Only owner or admin can remove members.
     */
     if v_caller_role not in ('owner', 'admin') then
-        raise exception 'Only tenant owner/admin can remove members';
+        raise exception using
+            message = 'Only tenant owner/admin can remove members',
+            detail = 'DB0201';
     end if;
 
     /*
@@ -84,7 +92,9 @@ begin
     for update;
 
     if v_target_role is null then
-        raise exception 'Target user is not a member of this tenant';
+        raise exception using
+            message = 'Target user is not a member of this tenant',
+            detail = 'DB0202';
     end if;
 
     /*
@@ -93,7 +103,9 @@ begin
     */
     if v_caller_role = 'admin'
        and v_target_role in ('owner', 'admin') then
-        raise exception 'Admin cannot remove owner or admin';
+        raise exception using
+            message = 'Admin cannot remove owner or admin',
+            detail = 'DB0207';
     end if;
 
     /*
@@ -120,7 +132,9 @@ begin
           and tm.role = 'owner';
 
         if v_owner_count = 1 then
-            raise exception 'Cannot remove the last owner of the tenant';
+            raise exception using
+                message = 'Cannot remove the last owner of the tenant',
+                detail = 'DB0203';
         end if;
     end if;
 
