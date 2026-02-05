@@ -28,7 +28,10 @@ def change_tenant_member_role(
     - Role invariants
     - Concurrency safety
     - Audit logging
+    
+    Raises DomainError if RPC fails.
     """
+    from app.errors.db import map_db_error
 
     """
     Obtain singleton Supabase client initialized with service role key.
@@ -43,22 +46,25 @@ def change_tenant_member_role(
 
     """
     Execute RPC with raw parameters.
-    No validation or transformation is done here.
     """
-    result = (
-        client.rpc(
-            "change_tenant_member_role",
-            {
-                "p_tenant_id": tenant_id,
-                "p_target_user_id": target_user_id,
-                "p_new_role": new_role,
-            },
+    try:
+        result = (
+            client.rpc(
+                "change_tenant_member_role",
+                {
+                    "p_tenant_id": tenant_id,
+                    "p_target_user_id": target_user_id,
+                    "p_new_role": new_role,
+                },
+            )
+            .execute()
         )
-        .execute()
-    )
-
-    """
-    Return raw result object.
-    Error handling is responsibility of higher layers.
-    """
-    return result
+        return result
+    
+    except Exception as exc:
+        """
+        Convert database exception to domain error.
+        This will be caught by router and converted to HTTP error.
+        """
+        domain_error = map_db_error(exc)
+        raise domain_error

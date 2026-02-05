@@ -4,6 +4,7 @@ from app.auth.deps import get_current_access_token
 from app.db.membership import change_tenant_member_role
 from app.errors.db import map_db_error, DomainError
 from app.errors.http import to_http_error
+from app.contracts.member import ChangeMemberRolePayload
 
 
 router = APIRouter(
@@ -16,7 +17,7 @@ router = APIRouter(
 def change_member_role(
     tenant_id: str,
     user_id: str,
-    payload: dict, # TO be replaced with a Pydantic model for better validation
+    payload: ChangeMemberRolePayload,
     access_token: str = Depends(get_current_access_token),
 ):
     """
@@ -33,7 +34,7 @@ def change_member_role(
     Extract new role from request payload.
     Validation is intentionally minimal here.
     """
-    new_role = payload.get("new_role")
+    new_role = payload.new_role
 
     """
     Execute RPC via database adapter.
