@@ -2,8 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.auth.deps import get_current_access_token
 from app.db.membership import change_tenant_member_role
-from app.errors.db import map_db_error, DomainError
-from app.errors.http import to_http_error
+from app.errors.db import DomainError, map_db_error
 from app.contracts.member import ChangeMemberRolePayload
 
 
@@ -38,6 +37,7 @@ def change_member_role(
 
     """
     Execute RPC via database adapter.
+    Router does not handle HTTP concerns.
     """
     try:
         result = change_tenant_member_role(
@@ -46,9 +46,17 @@ def change_member_role(
             target_user_id=user_id,
             new_role=new_role,
         )
-        return result # TO CHECK WITH response shape and handle empty rowcount
-    except DomainError as exc:
-        raise to_http_error(exc)
+        return result  # TO CHECK: response shape and empty rowcount handling
+
+    except DomainError:
+        """
+        Propagate domain error upward.
+        HTTP translation is handled by global exception handler.
+        """
+        raise
 
     except Exception as exc:
-        raise to_http_error(map_db_error(exc))
+        """
+        Translate unexpected infrastructure errors into domain errors.
+        """
+        raise map_db_error(exc)

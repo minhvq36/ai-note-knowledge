@@ -15,6 +15,7 @@ class DomainError(Exception):
     """
     Base class for all domain-level errors.
     """
+    code = "DOMAIN_ERROR"
 
     def __init__(self, message: str, *, cause: Optional[Exception] = None):
         super().__init__(message)
@@ -25,22 +26,22 @@ class PermissionDenied(DomainError):
     """
     Raised when RLS or permission checks fail.
     """
-    pass
+    code = "PERMISSION_DENIED"
 
 
 class InvariantViolated(DomainError):
     """
     Raised when a business invariant enforced by the database is violated.
-    Example: attempting to remove the last owner.
     """
-    pass
+    code = "INVARIANT_VIOLATED"
 
 
 class NotFound(DomainError):
     """
     Raised when a requested resource does not exist.
     """
-    pass
+    code = "NOT_FOUND"
+
 
 
 """
