@@ -44,11 +44,11 @@ ai-note-knowledge/
 │  │  │  │  └─ membership.py      # RPC adapters only
 │  │  │  ├─ errors/
 │  │  │  │  ├─ db.py              # DB error → domain error mapping
-│  │  │  │  └─ http.py            # Domain error → HTTPException
+│  │  │  │  └─ http.py            # Domain error → HTTP status mapping
 │  │  │  ├─ routers/
 │  │  │  │  ├─ tenants.py         # Router skeleton
 │  │  │  │  └─ members.py         # First real HTTP endpoint
-│  │  │  └─ main.py
+│  │  │  └─ main.py               # Global exception handler
 │  │  ├─ scripts_local/
 │  │  │  ├─ auth_login.py
 │  │  │  ├─ test_change_tenant_role.py        # Direct RPC test
@@ -121,7 +121,7 @@ Rules (unchanged):
 
 All complex business logic lives in RPC, not backend.
 
-## 8. Backend HTTP Layer (New)
+## 8. Backend HTTP Layer (Current State)
 
 ### Auth Dependency
 
@@ -132,9 +132,10 @@ All complex business logic lives in RPC, not backend.
 
 ### Error Handling
 
-* DB/PostgREST errors mapped to domain errors
-* Domain errors mapped to HTTP status codes
-* Router layer contains no business logic
+* DB/PostgREST errors mapped to **DomainError** (`errors/db.py`)
+* DomainError → HTTP status mapping via pure function (`errors/http.py`)
+* Global exception handler in `main.py` enforces HTTP response contract
+* Router layer contains **no HTTP or business error logic**
 
 ### Contracts
 
@@ -154,6 +155,7 @@ HTTP request
 → DB adapter (Supabase RPC)
 → Postgres RPC + RLS
 → domain error mapping
+→ global exception handler
 → HTTP response
 
 ## 10. E2E HTTP Tests (Validated)
@@ -166,23 +168,52 @@ Cases verified:
 * Member changes role → 403
 * Downgrade last owner → 409
 
-Result:
+Observed responses:
 
-* ✅ Full HTTP → DB → invariant → HTTP loop verified
-* ✅ No backend business logic leakage
+* Success response currently mirrors raw RPC output
+* Error response follows standardized envelope:
 
-## 11. Current Status
+```json
+{
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "PERMISSION_DENIED",
+    "message": "Caller lacks permission for membership operation"
+  }
+}
+```
+
+## 11. Current Status (Locked)
 
 * ✅ Schema + RLS locked
 * ✅ RPC baseline implemented
 * ✅ Backend auth dependency implemented
-* ✅ Error mapping layer implemented
+* ✅ Domain error model implemented
+* ✅ HTTP status mapping implemented
+* ✅ Global exception handler implemented
 * ✅ First router + contract implemented
 * ✅ Full HTTP E2E test passed
 
-## 12. Next Logical Steps (Not Started)
+## 12. Deferred Decisions (Explicitly Deferred)
 
-* Standardize HTTP response envelopes
+* HTTP success response envelope standardization
+* API-wide response wrapper middleware
+* Error code enum granularity (per-DB-code vs per-domain-class)
+
+These are intentionally deferred until a concrete consumer (UI / client SDK) exists.
+
+## 13. Next Logical Steps (Planned, Not Started)
+
+* Introduce application service layer (`app/services/`)
 * Add second endpoint following same pattern
-* Introduce integration tests (pytest)
-* Optional observability (request_id, structured logs)
+* Add pytest-based integration tests
+* Optional observability: request_id, structured logs
+
+---
+
+**Decision philosophy applied:**
+
+* Lock invariants early
+* Defer contracts until consumers exist
+* Optimize for change isolation, not premature abstraction
