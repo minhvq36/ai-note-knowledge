@@ -4,7 +4,7 @@ Database adapter for tenant membership RPCs.
 Responsibilities:
 - Obtain Supabase client
 - Forward access token
-- Call change_tenant_member_role RPC
+- Call membership RPCs
 
 This module must not contain any business logic.
 """
@@ -55,6 +55,61 @@ def change_tenant_member_role(
                     "p_tenant_id": tenant_id,
                     "p_target_user_id": target_user_id,
                     "p_new_role": new_role,
+                },
+            )
+            .execute()
+        )
+        return result
+    
+    except Exception as exc:
+        """
+        Convert database exception to domain error.
+        This will be caught by router and converted to HTTP error.
+        """
+        domain_error = map_db_error(exc)
+        raise domain_error
+
+
+def leave_tenant(
+    *,
+    access_token: str,
+    tenant_id: str,
+):
+    """
+    Call leave_tenant RPC.
+
+    The database enforces:
+    - Authentication
+    - Membership verification
+    - Last owner invariant (cannot be the last owner)
+    - Membership removal
+    - Audit logging
+    - Concurrency safety
+    
+    Raises DomainError if RPC fails.
+    """
+    from app.errors.db import map_db_error
+
+    """
+    Obtain singleton Supabase client initialized with service role key.
+    """
+    client = get_supabase_client()
+
+    """
+    Attach user JWT to PostgREST request context.
+    This enables auth.uid() inside the RPC.
+    """
+    client.postgrest.auth(access_token)
+
+    """
+    Execute RPC with raw parameters.
+    """
+    try:
+        result = (
+            client.rpc(
+                "leave_tenant",
+                {
+                    "p_tenant_id": tenant_id,
                 },
             )
             .execute()
