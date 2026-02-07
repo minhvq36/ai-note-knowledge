@@ -14,6 +14,7 @@ class Settings(BaseSettings):
 
     SUPABASE_URL: str
     SUPABASE_SERVICE_ROLE_KEY: str
+    SUPABASE_PUBLISHABLE_KEY: str
 
     class Config:
         env_file = ".env"

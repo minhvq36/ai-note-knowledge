@@ -60,7 +60,6 @@ class TenantDetailsResponse(BaseModel):
     id: UUID
     name: str
     created_at: datetime
-    member_count: int
 
 
 class TenantMemberItem(BaseModel):

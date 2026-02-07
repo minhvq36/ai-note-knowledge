@@ -10,7 +10,7 @@ This module MUST NOT contain any business logic.
 """
 
 from typing import Optional
-from supabase import Client, create_client
+from supabase import Client, create_client, ClientOptions
 from app.config import settings
 
 
@@ -51,3 +51,18 @@ def override_supabase_client(client: Client) -> None:
     """
     global _supabase_client
     _supabase_client = client
+    
+# def get_user_supabase_client(access_token: str):
+#     """
+#     Create a Supabase client bound to a specific user JWT using the PUBLISHABLE key.
+    
+#     This is the CORRECT way to enforce RLS 'TO authenticated' policies.
+#     The role will be switched to 'authenticated' by PostgREST.
+#     """
+#     client = create_client(
+#         settings.SUPABASE_URL,
+#         settings.SUPABASE_PUBLISHABLE_KEY,
+#     )
+#     client.postgrest.auth(access_token)
+#     return client
+

@@ -210,7 +210,7 @@ def get_tenant_details_endpoint(
                 code="NOT_FOUND",
             )
     
-    data = result.data
+    data = result.data[0]
     
     return ApiResponse(
         success=True,
@@ -218,7 +218,6 @@ def get_tenant_details_endpoint(
             id=data["id"],
             name=data["name"],
             created_at=data["created_at"],
-            member_count=0,
         ),
     )
 

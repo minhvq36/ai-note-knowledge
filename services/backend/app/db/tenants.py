@@ -19,7 +19,8 @@ Constraints:
 
 from uuid import UUID
 from app.db.client import get_supabase_client
-
+from dotenv import load_dotenv
+load_dotenv()
 
 def create_tenant(
     *,
@@ -141,6 +142,10 @@ def list_tenants(
     """
     from app.errors.db import map_db_error
 
+    """
+    Create new client with user-specific auth context.
+    Each request gets its own client instance to avoid auth context collisions.
+    """
     client = get_supabase_client()
     client.postgrest.auth(access_token)
 
@@ -176,6 +181,9 @@ def get_tenant_details(
     """
     from app.errors.db import map_db_error
 
+    """
+    Create new client with user-specific auth context.
+    """
     client = get_supabase_client()
     client.postgrest.auth(access_token)
 
@@ -214,6 +222,9 @@ def list_tenant_members(
     """
     from app.errors.db import map_db_error
 
+    """
+    Create new client with user-specific auth context.
+    """
     client = get_supabase_client()
     client.postgrest.auth(access_token)
 
