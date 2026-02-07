@@ -41,31 +41,17 @@ def change_member_role(
     Execute RPC via database adapter.
     Router does not handle HTTP concerns.
     """
-    try:
-        result = change_tenant_member_role(
-            access_token=access_token,
-            tenant_id=tenant_id,
-            target_user_id=user_id,
-            new_role=new_role,
-        )
-        
-        """
-        RPC returns void. Return success confirmation.
-        """
-        return ApiResponse(
-            success=True,
-            data=ChangeMemberRoleResponse(),
-        )
-
-    except DomainError:
-        """
-        Propagate domain error upward.
-        HTTP translation is handled by global exception handler.
-        """
-        raise
-
-    except Exception as exc:
-        """
-        Translate unexpected infrastructure errors into domain errors.
-        """
-        raise map_db_error(exc)
+    result = change_tenant_member_role(
+        access_token=access_token,
+        tenant_id=tenant_id,
+        target_user_id=user_id,
+        new_role=new_role,
+    )
+    
+    """
+    RPC returns void. Return success confirmation.
+    """
+    return ApiResponse(
+        success=True,
+        data=ChangeMemberRoleResponse(),
+    )

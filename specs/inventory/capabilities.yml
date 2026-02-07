@@ -141,7 +141,7 @@ categories:
         returns: list of tenant_members with user info
         notes:
           - projection varies by role
-        status: planned
+        status: implementing
 
       - name: list_tenants
         description: List all tenants the authenticated user belongs to
@@ -166,7 +166,7 @@ categories:
             required: false
             default: 0
         returns: list of tenant_members with tenant info
-        status: planned
+        status: implementing
 
       - name: get_tenant_details
         description: Get detailed information about a specific tenant
@@ -186,7 +186,7 @@ categories:
             type: uuid
             required: true
         returns: tenant object with member count
-        status: planned
+        status: implementing
 
   membership:
     name: Membership Management
