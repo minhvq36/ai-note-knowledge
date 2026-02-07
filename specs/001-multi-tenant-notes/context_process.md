@@ -1,4 +1,4 @@
-# CONTEXT PROCESS — Multi-Tenant AI Note System (HTTP E2E Added)
+# CONTEXT PROCESS — Multi-Tenant AI Note System (HTTP E2E Stabilized)
 
 ## 1. Project Goal
 
@@ -8,6 +8,8 @@
 * No model training; LLM API integration later
 * Learning-focused full-stack system engineering (infra, CI, backend, frontend)
 
+---
+
 ## 2. High-Level Architecture
 
 Browser / Frontend
@@ -15,13 +17,15 @@ Browser / Frontend
 → Supabase Postgres (RLS + RPC)
 → Optional Redis (future: cache, rate-limit)
 
-Key principle:
+Key principles:
 
 * Database enforces **security + invariants**
-* Backend orchestrates **business flows only**
-* Backend never re-implements domain rules
+* Backend orchestrates **flows**, not rules
+* Backend never re-implements domain logic already enforced by DB
 
-## 3. Repository Structure (Backend Expanded)
+---
+
+## 3. Repository Structure (Backend — Current)
 
 ```
 ai-note-knowledge/
@@ -36,24 +40,20 @@ ai-note-knowledge/
 │  │  ├─ app/
 │  │  │  ├─ config.py
 │  │  │  ├─ auth/
-│  │  │  │  └─ deps.py            # JWT extraction only (no decoding)
-│  │  │  ├─ contracts/
-│  │  │  │  └─ member.py         # Pydantic request contracts
+│  │  │  │  └─ deps.py              # JWT extraction only (no decode)
+│  │  │  ├─ contracts/              # Request / response contracts (Pydantic)
 │  │  │  ├─ db/
-│  │  │  │  ├─ client.py
-│  │  │  │  └─ membership.py      # RPC adapters only
+│  │  │  │  └─ ...adapters.py          # RPC adapters only (string in → string out)
 │  │  │  ├─ errors/
-│  │  │  │  ├─ db.py              # DB error → domain error mapping
-│  │  │  │  └─ http.py            # Domain error → HTTP status mapping
+│  │  │  │  ├─ db.py                # DB/PostgREST → DomainError
+│  │  │  │  └─ http.py              # DomainError → HTTP mapping
 │  │  │  ├─ routers/
-│  │  │  │  ├─ tenants.py         # Router skeleton
-│  │  │  │  └─ members.py         # First real HTTP endpoint
-│  │  │  └─ main.py               # Global exception handler
+│  │  │  │  ├─ tenants.py
+│  │  │  │  └─ members.py
+│  │  │  └─ main.py                 # Global exception handler
 │  │  ├─ scripts_local/
-│  │  │  ├─ auth_login.py
-│  │  │  ├─ test_change_tenant_role.py        # Direct RPC test
-│  │  │  └─ test_api_change_member_role.py    # Full HTTP → DB E2E test
-│  │  ├─ tests/
+│  │  │  ├─ test_api_change_member_role.py
+│  │  │  └─ test_api_tenant_crud.py # Full tenant E2E CRUD tests
 │  │  ├─ requirements.txt
 │  │  └─ README.md
 │
@@ -61,159 +61,236 @@ ai-note-knowledge/
 └─ README.md
 ```
 
-Rules (unchanged):
+Rules (locked):
 
-* ❌ Backend MUST NOT contain database migrations
-* ✅ All schema & RPC changes live in `infra/supabase/migrations`
-* Backend only **consumes** DB via RPC / REST
+* ❌ Backend MUST NOT contain migrations
+* ✅ All schema & RPC live in `infra/supabase/migrations`
+* Backend **only consumes** DB via RPC / REST
+
+---
 
 ## 4. Tenant & Role Model (Validated)
 
 * M tenants, N users
 * Roles: owner, admin, member
-* Invariants (enforced in DB):
 
-  * Tenant must always have ≥ 1 owner
-  * Only owner can change roles
-  * Owner can downgrade self/others except the **last owner**
+Invariants (DB enforced):
+
+* Tenant must always have ≥ 1 owner
+* Only owner can change roles
+* Owner cannot remove or downgrade the **last owner**
+
+Backend assumes invariants always hold.
+
+---
 
 ## 5. Core Tables (Baseline Locked)
 
 * tenants
-* users (auth.users mirrored via trigger)
+* users (auth.users mirrored)
 * tenant_members
+* tenant_join_requests
 * notes
 * note_shares
-* tenant_join_requests
 * audit_logs
 
-## 6. RLS & Security Model
+---
+
+## 6. Security & RLS Model
 
 * RLS is the primary security boundary
-* JWT forwarded from client → backend → PostgREST
-* Backend does not decode or inspect JWT
-* RPC functions use `security definer`
+* JWT forwarded client → backend → PostgREST
+* Backend does **not** decode JWT
+* RPC functions use `SECURITY DEFINER`
 * DB enforces:
 
-  * Authentication via `auth.uid()`
+  * `auth.uid()` authentication
   * Role permissions
-  * Ownership
-  * Last-owner invariants
+  * Ownership & last-owner invariants
   * Concurrency safety (`FOR UPDATE`)
 
-## 7. RPC Surface (Baseline Implemented)
+---
+
+## 7. RPC Surface (Baseline)
+
+### Tenant & Membership
 
 * create_tenant
+* delete_tenant
 * change_tenant_member_role
-* invite_user_to_tenant
+* remove_tenant_member
+* leave_tenant
+
+### Join / Invite (Implemented, not yet exposed via HTTP)
+
 * request_join_tenant
 * approve_join_request
 * reject_join_request
+* cancel_join_request
+* invite_user_to_tenant
 * accept_invite
 * decline_invite
-* cancel_join_request
 * cancel_invite
-* remove_tenant_member
-* leave_tenant
-* delete_tenant
+
+### Notes
+
 * delete_note
 * change_note_share_permission
 
-All complex business logic lives in RPC, not backend.
+All business logic lives in RPC.
 
-## 8. Backend HTTP Layer (Current State)
+---
+
+## 8. Backend HTTP Layer (Stabilized)
 
 ### Auth Dependency
 
-* `get_current_access_token`
 * Extracts `Authorization: Bearer <token>`
-* Raises 401 on missing / invalid format
-* Does not decode or validate JWT
+* Validates header format only
+* Raises 401 on missing / malformed header
 
-### Error Handling
+### Error Model
 
-* DB/PostgREST errors mapped to **DomainError** (`errors/db.py`)
-* DomainError → HTTP status mapping via pure function (`errors/http.py`)
-* Global exception handler in `main.py` enforces HTTP response contract
-* Router layer contains **no HTTP or business error logic**
+```python
+class DomainError(Exception):
+    code = "DOMAIN_ERROR"
 
-### Contracts
-
-* Pydantic models live in `app/contracts`
-* Routers consume contracts, never define them
-
-## 9. First HTTP Endpoint (Completed)
-
-```
-POST /tenants/{tenant_id}/members/{user_id}/role
+class PermissionDenied(DomainError):
+    code = "PERMISSION_DENIED"
 ```
 
-Flow:
-HTTP request
-→ FastAPI router
-→ auth dependency
-→ DB adapter (Supabase RPC)
-→ Postgres RPC + RLS
-→ domain error mapping
-→ global exception handler
-→ HTTP response
+Principles:
 
-## 10. E2E HTTP Tests (Validated)
+* Router layer never invents errors
+* Router never checks domain conditions (`if not result.data` is avoided)
+* Empty / invalid DB responses are treated as DB errors and mapped centrally
+* Error messages returned to client are **sanitized** (no internal leakage)
 
-`scripts_local/test_api_change_member_role.py`
+### Error Flow
 
-Cases verified:
+HTTP
+→ RPC adapter
+→ DB error mapping (`errors/db.py`)
+→ DomainError
+→ HTTP mapping (`errors/http.py`)
+→ Global exception handler
+
+---
+
+## 9. HTTP Response Contract (De facto standard)
+
+```json
+{
+  "success": true | false,
+  "data": object | null,
+  "error": {
+    "code": "PERMISSION_DENIED",
+    "message": "Human readable message"
+  } | null
+}
+```
+
+* Routers always return `ApiResponse`
+* Even void RPCs return success confirmation
+
+---
+
+## 10. HTTP E2E Tests (Expanded)
+
+### Change Member Role
+
+Verified:
 
 * Owner changes role → 200
 * Member changes role → 403
 * Downgrade last owner → 409
 
-Observed responses:
+### Tenant CRUD (New)
 
-* Success response currently mirrors raw RPC output
-* Error response follows standardized envelope:
+`scripts_local/test_api_tenant_crud.py`
 
-```json
-{
-  "success": false,
-  "data": null,
-  "error": {
-    "code": "PERMISSION_DENIED",
-    "message": "Caller lacks permission for membership operation"
-  }
-}
-```
+Verified end-to-end:
 
-## 11. Current Status (Locked)
+* User creates tenant → 200
+* Owner deletes own empty tenant → 200
+* Non-owner deletes tenant → 403
+
+Observed:
+
+* No error leakage
+* DomainError codes propagated correctly
+* Router layer contains zero business logic
+
+---
+
+## 11. Batch Execution Plan (Locked)
+
+### Batch 0 — Core Writes (DONE)
+
+* create_tenant
+* change_member_role
+* leave_tenant
+* delete_tenant
+
+### Batch 1 — Tenant Queries & Admin (NEXT)
+
+* list_tenants
+* get_tenant_details
+* list_tenant_members
+* remove_member
+
+### Batch 2 — Membership Workflow
+
+* request_join_tenant
+* approve_join_request
+* reject_join_request
+* cancel_join_request
+* invite_user_to_tenant
+* accept_invite
+* decline_invite
+* cancel_invite
+* list_join_requests
+* list_invites
+* list_my_invites
+
+### Batch 3 — Notes & Sharing
+
+* create_note
+* get_note
+* list_my_notes
+* list_tenant_notes
+* update_note
+* delete_note
+* share_note
+* revoke_share
+* list_note_shares
+* list_shared_with_me
+
+---
+
+## 12. Current Status (Locked)
 
 * ✅ Schema + RLS locked
-* ✅ RPC baseline implemented
-* ✅ Backend auth dependency implemented
-* ✅ Domain error model implemented
-* ✅ HTTP status mapping implemented
-* ✅ Global exception handler implemented
-* ✅ First router + contract implemented
-* ✅ Full HTTP E2E test passed
+* ✅ Core RPC implemented
+* ✅ Domain error model validated
+* ✅ HTTP global exception handler stable
+* ✅ Tenant CRUD E2E tests passing
+* ✅ Router responsibility boundaries validated
 
-## 12. Deferred Decisions (Explicitly Deferred)
+---
 
-* HTTP success response envelope standardization
-* API-wide response wrapper middleware
-* Error code enum granularity (per-DB-code vs per-domain-class)
+## 13. Immediate Next Steps
 
-These are intentionally deferred until a concrete consumer (UI / client SDK) exists.
-
-## 13. Next Logical Steps (Planned, Not Started)
-
-* Introduce application service layer (`app/services/`)
-* Add second endpoint following same pattern
-* Add pytest-based integration tests
-* Optional observability: request_id, structured logs
+1. Implement **Batch 1** RPC adapters + routers
+2. Add list/query E2E tests
+3. Keep routers logic-free
+4. Defer service layer until workflow complexity requires it
 
 ---
 
 **Decision philosophy applied:**
 
-* Lock invariants early
-* Defer contracts until consumers exist
-* Optimize for change isolation, not premature abstraction
+* DB is the law
+* Routers are dumb
+* Errors flow in one direction only
+* Optimize for long-term maintainability, not speed
