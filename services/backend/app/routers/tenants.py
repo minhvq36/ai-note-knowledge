@@ -1,11 +1,17 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends
+from app.http.response import ApiResponse
 
 from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant
 from app.errors.db import DomainError, map_db_error
-from app.contracts.member import CreateTenantPayload
+from app.contracts.tenant import (
+    CreateTenantPayload,
+    CreateTenantResponse,
+    DeleteTenantResponse,
+    LeaveTenantResponse,
+)
 
 
 router = APIRouter(
@@ -43,7 +49,12 @@ def create_tenant_endpoint(
             access_token=access_token,
             name=name,
         )
-        return result
+        return ApiResponse(
+                    success=True,
+                    data=CreateTenantResponse(
+                        tenant_id=result.data,
+                    ),
+                )
 
     except DomainError:
         """
@@ -85,7 +96,20 @@ def delete_tenant_endpoint(
             access_token=access_token,
             tenant_id=tenant_id,
         )
-        return result
+        
+        if not result.data:
+            raise DomainError(
+                    message="Unexpected empty result from delete_tenant",
+                    code="INVARIANT_VIOLATION",
+                )
+        
+        return ApiResponse(
+            success=True,
+            data=DeleteTenantResponse(
+                tenant_id=result.data[0]["tenant_id"],
+                result=result.data[0]["result"],
+            ),
+        )
 
     except DomainError:
         """
@@ -127,7 +151,21 @@ def leave_tenant_endpoint(
             access_token=access_token,
             tenant_id=tenant_id,
         )
-        return result
+        
+        if not result.data:
+            raise DomainError(
+                    message="Unexpected empty result from leave_tenant",
+                    code="INVARIANT_VIOLATION",
+                )
+        
+        return ApiResponse(
+            success=True,
+            data=LeaveTenantResponse(
+                tenant_id=result.data[0]["tenant_id"],
+                user_id=result.data[0]["user_id"],
+                result=result.data[0]["result"],
+            ),
+        )
 
     except DomainError:
         """

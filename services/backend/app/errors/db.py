@@ -15,11 +15,19 @@ class DomainError(Exception):
     """
     Base class for all domain-level errors.
     """
-    code = "DOMAIN_ERROR"
+    code: str = "DOMAIN_ERROR"
 
-    def __init__(self, message: str, *, cause: Optional[Exception] = None):
+    def __init__(
+        self,
+        message: str,
+        *,
+        cause: Optional[Exception] = None,
+        code: Optional[str] = None,
+    ):
         super().__init__(message)
         self.cause = cause
+        if code is not None:
+            self.code = code
 
 
 class PermissionDenied(DomainError):

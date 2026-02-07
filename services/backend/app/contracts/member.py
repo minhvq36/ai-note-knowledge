@@ -1,13 +1,15 @@
 from pydantic import BaseModel
 from typing import Literal
+from uuid import UUID
+
 
 class ChangeMemberRolePayload(BaseModel):
     new_role: Literal["owner", "admin", "member"]
 
 
-class CreateTenantPayload(BaseModel):
+class ChangeMemberRoleResponse(BaseModel):
     """
-    Payload for creating a new tenant.
-    Caller automatically becomes the owner.
+    Response when changing a member's role.
+    RPC returns void, so we return success confirmation.
     """
-    name: str
+    message: str = "Role changed successfully"

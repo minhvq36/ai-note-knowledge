@@ -1,10 +1,11 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends
+from app.http.response import ApiResponse
 
 from app.auth.deps import get_current_access_token
 from app.db.membership import change_tenant_member_role
 from app.errors.db import DomainError, map_db_error
-from app.contracts.member import ChangeMemberRolePayload
+from app.contracts.member import ChangeMemberRolePayload, ChangeMemberRoleResponse
 
 
 router = APIRouter(
@@ -43,11 +44,18 @@ def change_member_role(
     try:
         result = change_tenant_member_role(
             access_token=access_token,
-            tenant_id=str(tenant_id),
-            target_user_id=str(user_id),
+            tenant_id=tenant_id,
+            target_user_id=user_id,
             new_role=new_role,
         )
-        return result  # TO CHECK: response shape and empty rowcount handling
+        
+        """
+        RPC returns void. Return success confirmation.
+        """
+        return ApiResponse(
+            success=True,
+            data=ChangeMemberRoleResponse(),
+        )
 
     except DomainError:
         """
