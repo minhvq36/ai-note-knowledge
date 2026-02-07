@@ -1,3 +1,4 @@
+from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.auth.deps import get_current_access_token
@@ -14,8 +15,8 @@ router = APIRouter(
 
 @router.post("/{user_id}/role")
 def change_member_role(
-    tenant_id: str,
-    user_id: str,
+    tenant_id: UUID,
+    user_id: UUID,
     payload: ChangeMemberRolePayload,
     access_token: str = Depends(get_current_access_token),
 ):
@@ -42,8 +43,8 @@ def change_member_role(
     try:
         result = change_tenant_member_role(
             access_token=access_token,
-            tenant_id=tenant_id,
-            target_user_id=user_id,
+            tenant_id=str(tenant_id),
+            target_user_id=str(user_id),
             new_role=new_role,
         )
         return result  # TO CHECK: response shape and empty rowcount handling

@@ -9,14 +9,15 @@ Responsibilities:
 This module must not contain any business logic.
 """
 
+from uuid import UUID
 from app.db.client import get_supabase_client
 
 
 def change_tenant_member_role(
     *,
     access_token: str,
-    tenant_id: str,
-    target_user_id: str,
+    tenant_id: UUID,
+    target_user_id: UUID,
     new_role: str,
 ):
     """
@@ -52,8 +53,8 @@ def change_tenant_member_role(
             client.rpc(
                 "change_tenant_member_role",
                 {
-                    "p_tenant_id": tenant_id,
-                    "p_target_user_id": target_user_id,
+                    "p_tenant_id": str(tenant_id),
+                    "p_target_user_id": str(target_user_id),
                     "p_new_role": new_role,
                 },
             )
@@ -73,7 +74,7 @@ def change_tenant_member_role(
 def leave_tenant(
     *,
     access_token: str,
-    tenant_id: str,
+    tenant_id: UUID,
 ):
     """
     Call leave_tenant RPC.
@@ -109,7 +110,7 @@ def leave_tenant(
             client.rpc(
                 "leave_tenant",
                 {
-                    "p_tenant_id": tenant_id,
+                    "p_tenant_id": str(tenant_id),
                 },
             )
             .execute()
