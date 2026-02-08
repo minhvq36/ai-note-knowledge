@@ -13,11 +13,9 @@ from app.db.client import get_supabase_client
 from app.errors.db import map_db_error
 
 
-def request_join_tenant(access_token: str, tenant_id: UUID) -> dict:
+def request_join_tenant(access_token: str, tenant_id: UUID):
     """
     User requests to join a tenant.
-
-    Returns: {request_id, result}
     """
     try:
         client = get_supabase_client()
@@ -28,19 +26,14 @@ def request_join_tenant(access_token: str, tenant_id: UUID) -> dict:
             {"p_tenant_id": str(tenant_id)},
         ).execute()
 
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        
-        return {}
+        return result
     except Exception as e:
         raise map_db_error(e)
 
 
-def approve_join_request(access_token: str, request_id: UUID) -> dict:
+def approve_join_request(access_token: str, request_id: UUID):
     """
     Owner/admin approves a pending join request.
-
-    Returns: {request_id, result}
     """
     try:
         client = get_supabase_client()
@@ -51,19 +44,14 @@ def approve_join_request(access_token: str, request_id: UUID) -> dict:
             {"p_request_id": str(request_id)},
         ).execute()
 
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        
-        return {}
+        return result
     except Exception as e:
         raise map_db_error(e)
 
 
-def reject_join_request(access_token: str, request_id: UUID) -> dict:
+def reject_join_request(access_token: str, request_id: UUID):
     """
     Owner/admin rejects a pending join request.
-
-    Returns: {request_id, result}
     """
     try:
         client = get_supabase_client()
@@ -74,19 +62,14 @@ def reject_join_request(access_token: str, request_id: UUID) -> dict:
             {"p_request_id": str(request_id)},
         ).execute()
 
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        
-        return {}
+        return result
     except Exception as e:
         raise map_db_error(e)
 
 
-def cancel_join_request(access_token: str, request_id: UUID) -> dict:
+def cancel_join_request(access_token: str, request_id: UUID):
     """
     User cancels their own pending join request.
-
-    Returns: {request_id, result}
     """
     try:
         client = get_supabase_client()
@@ -97,9 +80,6 @@ def cancel_join_request(access_token: str, request_id: UUID) -> dict:
             {"p_request_id": str(request_id)},
         ).execute()
 
-        if result.data and len(result.data) > 0:
-            return result.data[0]
-        
-        return {}
+        return result
     except Exception as e:
         raise map_db_error(e)

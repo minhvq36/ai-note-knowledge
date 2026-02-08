@@ -18,6 +18,7 @@ from app.db.invites import (
     reject_join_request,
     cancel_join_request,
 )
+from app.errors.db import DomainError
 from app.contracts.member import (
     RequestJoinTenantResponse,
     ApproveJoinRequestResponse,
@@ -49,11 +50,19 @@ def request_join_endpoint(
 
     result = request_join_tenant(access_token, tenant_id)
     
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Join request operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
     return ApiResponse(
         success=True,
         data=RequestJoinTenantResponse(
-            request_id=result.get("request_id"),
-            result=result.get("result"),
+            request_id=data["request_id"],
+            result=data["result"],
         ),
     )
 
@@ -75,11 +84,19 @@ def approve_join_request_endpoint(
 
     result = approve_join_request(access_token, request_id)
     
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Approve request operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
     return ApiResponse(
         success=True,
         data=ApproveJoinRequestResponse(
-            request_id=result.get("request_id"),
-            result=result.get("result"),
+            request_id=data["request_id"],
+            result=data["result"],
         ),
     )
 
@@ -101,11 +118,19 @@ def reject_join_request_endpoint(
 
     result = reject_join_request(access_token, request_id)
     
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Reject request operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
     return ApiResponse(
         success=True,
         data=RejectJoinRequestResponse(
-            request_id=result.get("request_id"),
-            result=result.get("result"),
+            request_id=data["request_id"],
+            result=data["result"],
         ),
     )
 
@@ -126,10 +151,18 @@ def cancel_join_request_endpoint(
 
     result = cancel_join_request(access_token, request_id)
     
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Cancel request operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
     return ApiResponse(
         success=True,
         data=CancelJoinRequestResponse(
-            request_id=result.get("request_id"),
-            result=result.get("result"),
+            request_id=data["request_id"],
+            result=data["result"],
         ),
     )
