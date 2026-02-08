@@ -19,7 +19,7 @@ from app.db.invites import (
     cancel_join_request,
 )
 from app.errors.db import DomainError
-from app.contracts.member import (
+from app.contracts.request import (
     RequestJoinTenantResponse,
     ApproveJoinRequestResponse,
     RejectJoinRequestResponse,
