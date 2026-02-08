@@ -13,3 +13,12 @@ class ChangeMemberRoleResponse(BaseModel):
     RPC returns void, so we return success confirmation.
     """
     message: str = "Role changed successfully"
+
+
+class RemoveMemberResponse(BaseModel):
+    """
+    Response when removing a tenant member.
+    """
+    tenant_id: UUID
+    removed_user_id: UUID
+    result: str

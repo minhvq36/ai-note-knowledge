@@ -71,7 +71,7 @@ categories:
           - admin_cannot_remove_admin
           - member_cannot_remove_anyone
           - self_removal_not_allowed_use_leave_tenant
-        status: planned
+        status: implementing
 
       - name: leave_tenant
         description: User leaves a tenant they belong to
@@ -141,7 +141,7 @@ categories:
         returns: list of tenant_members with user info
         notes:
           - projection varies by role
-        status: implementing
+        status: implemented
 
       - name: list_tenants
         description: List all tenants the authenticated user belongs to
@@ -166,7 +166,7 @@ categories:
             required: false
             default: 0
         returns: list of tenant_members with tenant info
-        status: implementing
+        status: implemented
 
       - name: get_tenant_details
         description: Get detailed information about a specific tenant
@@ -186,7 +186,7 @@ categories:
             type: uuid
             required: true
         returns: tenant object with member count
-        status: implementing
+        status: implemented
 
   membership:
     name: Membership Management
