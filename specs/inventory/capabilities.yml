@@ -210,7 +210,7 @@ categories:
           - no_duplicate_pending_join_requests
           - cannot_request_if_already_member
           - cannot_have_join_and_invite_pending_simultaneously
-        status: implementing
+        status: implemented
 
       - name: approve_join_request
         description: Approve a pending join request (admin/owner action)
@@ -231,7 +231,7 @@ categories:
         invariants:
           - only_join_requests_can_be_approved
           - only_pending_requests_can_be_approved
-        status: implementing
+        status: implemented
 
       - name: reject_join_request
         description: Reject a pending join request (admin/owner action)
@@ -252,7 +252,7 @@ categories:
         invariants:
           - only_join_requests_can_be_rejected
           - only_pending_requests_can_be_rejected
-        status: implementing
+        status: implemented
 
       - name: cancel_join_request
         description: Cancel a pending join request (requester action)
@@ -273,7 +273,7 @@ categories:
           - only_join_requests_can_be_cancelled
           - only_pending_requests_can_be_cancelled
           - only_requester_can_cancel
-        status: implementing
+        status: implemented
 
       - name: invite_user_to_tenant
         description: Invite a user to join a tenant (owner/admin action)
@@ -298,7 +298,7 @@ categories:
           - no_duplicate_pending_invites
           - cannot_invite_existing_member
           - cannot_have_join_and_invite_pending_simultaneously
-        status: planned
+        status: implementing
 
       - name: accept_invite
         description: Accept a pending invite to join a tenant
@@ -319,7 +319,7 @@ categories:
           - only_invite_requests_can_be_accepted
           - only_pending_invites_can_be_accepted
           - only_invited_user_can_accept
-        status: planned
+        status: implementing
 
       - name: decline_invite
         description: Decline a pending invite to join a tenant
@@ -340,16 +340,16 @@ categories:
           - only_invite_requests_can_be_declined
           - only_pending_invites_can_be_declined
           - only_invited_user_can_decline
-        status: planned
+        status: implementing
 
-      - name: cancel_invite
+      - name: revoke_invite
         description: Cancel a pending invite (owner/admin action)
         http:
           method: POST
-          path: /requests/{request_id}/cancel
+          path: /requests/{request_id}/revoke
         source:
           type: rpc
-          name: cancel_invite
+          name: revoke_invite
         roles:
           - owner
           - admin
@@ -362,7 +362,7 @@ categories:
           - only_invite_requests_can_be_cancelled
           - only_pending_invites_can_be_cancelled
           - only_owner_or_admin_can_cancel
-        status: planned
+        status: implementing
 
       - name: list_join_requests
         description: List pending/historical join requests for a tenant

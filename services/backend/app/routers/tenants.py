@@ -5,6 +5,7 @@ from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
+from app.db.membership_requests import request_join_tenant, invite_user_to_tenant
 from app.errors.db import DomainError
 from app.contracts.tenant import (
     CreateTenantPayload,
@@ -16,6 +17,11 @@ from app.contracts.tenant import (
     ListTenantMembersResponse,
     TenantItem,
     TenantMemberItem,
+)
+from app.contracts.request import (
+    RequestJoinTenantResponse,
+    InviteUserToTenantPayload,
+    InviteUserToTenantResponse,
 )
 
 
@@ -262,5 +268,76 @@ def list_tenant_members_endpoint(
         data=ListTenantMembersResponse(
             members=members,
             total=len(result.data),
+        ),
+    )
+
+
+@router.post("/{tenant_id}/requests/join")
+def request_join_endpoint(
+    tenant_id: UUID,
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    User requests to join a tenant.
+
+    Domain rules enforced by database:
+    - Caller must be authenticated
+    - Cannot request if already a member
+    - At most one pending join request per tenant
+    - Join/invite cannot both be pending
+    """
+
+    result = request_join_tenant(access_token, tenant_id)
+    
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Join request operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
+    return ApiResponse(
+        success=True,
+        data=RequestJoinTenantResponse(
+            request_id=data["request_id"],
+            result=data["result"],
+        ),
+    )
+
+
+@router.post("/{tenant_id}/invites")
+def invite_user_to_tenant_endpoint(
+    tenant_id: UUID,
+    payload: InviteUserToTenantPayload,
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    Owner/admin invites a user to join a tenant.
+
+    Domain rules enforced by database:
+    - Caller must be owner/admin of tenant
+    - Target user must have a Supabase account
+    - At most one pending invite per (tenant, user)
+    - Join/invite cannot both be pending
+    """
+
+    target_user_id = payload.target_user_id
+
+    result = invite_user_to_tenant(access_token, tenant_id, target_user_id)
+    
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Invite operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
+    return ApiResponse(
+        success=True,
+        data=InviteUserToTenantResponse(
+            request_id=data["request_id"],
+            result=data["result"],
         ),
     )
