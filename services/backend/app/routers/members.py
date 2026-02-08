@@ -4,7 +4,7 @@ from app.http.response import ApiResponse
 
 from app.auth.deps import get_current_access_token
 from app.db.membership import change_tenant_member_role, remove_tenant_member
-from app.errors.db import DomainError, map_db_error
+from app.errors.db import DomainError
 from app.contracts.member import ChangeMemberRolePayload, ChangeMemberRoleResponse, RemoveMemberResponse
 
 

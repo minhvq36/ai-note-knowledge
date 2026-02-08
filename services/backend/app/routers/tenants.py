@@ -5,7 +5,7 @@ from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
-from app.errors.db import DomainError, map_db_error
+from app.errors.db import DomainError
 from app.contracts.tenant import (
     CreateTenantPayload,
     CreateTenantResponse,
