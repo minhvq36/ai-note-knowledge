@@ -41,7 +41,7 @@ def get_note(access_token: str, note_id: UUID):
         client = get_supabase_client()
         client.postgrest.auth(access_token)
 
-        result = client.table("notes").select("*").eq("id", str(note_id)).single().execute()
+        result = client.table("notes").select("*").eq("id", str(note_id)).limit(1).execute()
 
         return result
     except Exception as e:

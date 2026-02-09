@@ -3,14 +3,6 @@ alter table note_shares enable row level security;
 
 /*
 Check whether the current user can read a note.
-
-Access is granted if:
-- User belongs to the tenant AND
-- User is:
-  - tenant owner
-  - tenant admin
-  - note owner
-  - or shared user
 */
 create or replace function public.check_note_access(
     p_tenant_id uuid,
