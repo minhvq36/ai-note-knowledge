@@ -5,7 +5,7 @@ from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
-from app.db.membership_requests import request_join_tenant, invite_user_to_tenant
+from app.db.membership_requests import request_join_tenant, invite_user_to_tenant, list_join_requests, list_invites
 from app.errors.db import DomainError
 from app.contracts.tenant import (
     CreateTenantPayload,
@@ -22,6 +22,8 @@ from app.contracts.request import (
     RequestJoinTenantResponse,
     InviteUserToTenantPayload,
     InviteUserToTenantResponse,
+    ListJoinRequestsResponse,
+    ListInvitesResponse,
 )
 
 
@@ -340,4 +342,58 @@ def invite_user_to_tenant_endpoint(
             request_id=data["request_id"],
             result=data["result"],
         ),
+    )
+
+
+@router.get("/{tenant_id}/requests/join")
+def list_join_requests_endpoint(
+    tenant_id: UUID,
+    status: str = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List join requests for a tenant (direction='join').
+    
+    Access control:
+    - Owner/admin can see all join requests
+    - Requester/initiator can see their own requests
+    - RLS enforces at database level
+    """
+    
+    result = list_join_requests(access_token, tenant_id, status, limit, offset)
+    
+    requests = result.data if result.data else []
+    
+    return ApiResponse(
+        success=True,
+        data=ListJoinRequestsResponse(requests=requests),
+    )
+
+
+@router.get("/{tenant_id}/invites")
+def list_invites_endpoint(
+    tenant_id: UUID,
+    status: str = Query(None),
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List invites for a tenant (direction='invite').
+    
+    Access control:
+    - Owner/admin can see all invites
+    - Invited user can see their own invites
+    - RLS enforces at database level
+    """
+    
+    result = list_invites(access_token, tenant_id, status, limit, offset)
+    
+    invites = result.data if result.data else []
+    
+    return ApiResponse(
+        success=True,
+        data=ListInvitesResponse(invites=invites),
     )

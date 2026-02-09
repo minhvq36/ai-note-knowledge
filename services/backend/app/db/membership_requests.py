@@ -165,3 +165,92 @@ def revoke_invite(access_token: str, request_id: UUID):
         return result
     except Exception as e:
         raise map_db_error(e)
+
+
+"""
+Query adapters - direct table access with RLS enforcement
+"""
+
+
+def list_join_requests(access_token: str, tenant_id: UUID, status: str = None, limit: int = 20, offset: int = 0):
+    """
+    List join requests for a tenant (direction='join').
+    Enforced by RLS: only owner/admin can see, or requester/initiator.
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        query = client.table("tenant_join_requests").select(
+            "id, tenant_id, user_id, initiated_by, direction, status, decided_by, decided_at, created_at"
+        ).eq("tenant_id", str(tenant_id)).eq("direction", "join")
+
+        if status:
+            query = query.eq("status", status)
+
+        result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def list_invites(access_token: str, tenant_id: UUID, status: str = None, limit: int = 20, offset: int = 0):
+    """
+    List invites for a tenant (direction='invite').
+    Enforced by RLS: only owner/admin can see, or invited user.
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        query = client.table("tenant_join_requests").select(
+            "id, tenant_id, user_id, initiated_by, direction, status, decided_by, decided_at, created_at"
+        ).eq("tenant_id", str(tenant_id)).eq("direction", "invite")
+
+        if status:
+            query = query.eq("status", status)
+
+        result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def list_my_invites(access_token: str, limit: int = 20, offset: int = 0):
+    """
+    List all pending invites for the authenticated user.
+    Enforced by RLS: can only see invites where user_id = auth.uid() and status='pending'.
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("tenant_join_requests").select(
+            "id, tenant_id, user_id, initiated_by, direction, status, decided_by, decided_at, created_at"
+        ).eq("direction", "invite").eq("status", "pending").order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def list_my_join_requests(access_token: str, status: str = None, limit: int = 20, offset: int = 0):
+    """
+    List all join requests sent by the authenticated user (direction='join').
+    Enforced by RLS: can only see own requests.
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        query = client.table("tenant_join_requests").select(
+            "id, tenant_id, user_id, initiated_by, direction, status, decided_by, decided_at, created_at"
+        ).eq("direction", "join")
+
+        if status:
+            query = query.eq("status", status)
+
+        result = query.order("created_at", desc=True).range(offset, offset + limit - 1).execute()
+        return result
+    except Exception as e:
+        raise map_db_error(e)

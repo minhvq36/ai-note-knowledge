@@ -4,6 +4,7 @@ from fastapi.responses import RedirectResponse, JSONResponse
 from app.routers.members import router as members_router
 from app.routers.tenants import router as tenants_router
 from app.routers.requests import router as requests_router
+from app.routers.me import router as me_router
 from app.errors.db import DomainError
 from app.errors.http import get_status_code_for_error
 from app.http.response import ApiResponse, ErrorPayload
@@ -57,3 +58,4 @@ async def domain_error_handler(request: Request, exc: DomainError):
 app.include_router(members_router)
 app.include_router(tenants_router)
 app.include_router(requests_router)
+app.include_router(me_router)

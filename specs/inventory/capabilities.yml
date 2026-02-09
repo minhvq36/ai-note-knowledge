@@ -298,7 +298,7 @@ categories:
           - no_duplicate_pending_invites
           - cannot_invite_existing_member
           - cannot_have_join_and_invite_pending_simultaneously
-        status: implementing
+        status: implemented
 
       - name: accept_invite
         description: Accept a pending invite to join a tenant
@@ -319,7 +319,7 @@ categories:
           - only_invite_requests_can_be_accepted
           - only_pending_invites_can_be_accepted
           - only_invited_user_can_accept
-        status: implementing
+        status: implemented
 
       - name: decline_invite
         description: Decline a pending invite to join a tenant
@@ -340,7 +340,7 @@ categories:
           - only_invite_requests_can_be_declined
           - only_pending_invites_can_be_declined
           - only_invited_user_can_decline
-        status: implementing
+        status: implemented
 
       - name: revoke_invite
         description: Cancel a pending invite (owner/admin action)
@@ -362,7 +362,7 @@ categories:
           - only_invite_requests_can_be_cancelled
           - only_pending_invites_can_be_cancelled
           - only_owner_or_admin_can_cancel
-        status: implementing
+        status: implemented
 
       - name: list_join_requests
         description: List pending/historical join requests for a tenant
@@ -393,7 +393,7 @@ categories:
             required: false
             default: 0
         returns: list of tenant_join_requests
-        status: planned
+        status: implementing
 
       - name: list_invites
         description: List pending/historical invites for a tenant
@@ -424,13 +424,13 @@ categories:
             required: false
             default: 0
         returns: list of tenant_join_requests with direction='invite'
-        status: planned
+        status: implementing
 
       - name: list_my_invites
         description: List all pending invites for the authenticated user
         http:
           method: GET
-          path: /invites/pending
+          path: /me/invites/pending
         source:
           type: query
           table: tenant_join_requests
@@ -447,7 +447,34 @@ categories:
             required: false
             default: 0
         returns: list of pending invite requests
-        status: planned
+        status: implementing
+
+      - name: list_my_join_requests
+        description: List all join requests sent by the authenticated user
+        http:
+          method: GET
+          path: /me/requests
+        source:
+          type: query
+          table: tenant_join_requests
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: status
+            type: enum
+            values: [pending, approved, rejected, cancelled]
+            required: false
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of join requests with direction='join'
+        status: implementing
 
   notes:
     name: Note Management
