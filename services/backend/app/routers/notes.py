@@ -12,7 +12,12 @@ from fastapi import APIRouter, Depends
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.notes import get_note, update_note, delete_note
-from app.errors.db import DomainError
+from app.errors.db import (
+    DomainError,
+    PermissionDenied,
+    InvariantViolated,
+    NotFound,
+    )
 from app.contracts.note import (
     GetNoteResponse,
     UpdateNotePayload,
@@ -42,12 +47,12 @@ def get_note_endpoint(
     result = get_note(access_token, note_id)
     
     if not result.data:
-        raise DomainError(
+        raise NotFound(
             message="Note not found or access denied",
             code="DB0401",
         )
     
-    data = result.data
+    data = result.data[0]
     
     return ApiResponse(
         success=True,
