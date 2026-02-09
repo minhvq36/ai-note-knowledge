@@ -13,8 +13,6 @@ from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.notes import get_note, update_note, delete_note
 from app.errors.db import (
-    DomainError,
-    PermissionDenied,
     InvariantViolated,
     NotFound,
     )
@@ -89,9 +87,9 @@ def update_note_endpoint(
     result = update_note(access_token, note_id, content)
     
     if not result.data or len(result.data) == 0:
-        raise DomainError(
+        raise InvariantViolated(
             message="Update note operation returned no data or access denied",
-            code="INVARIANT_VIOLATION",
+            code="DB0403",
         )
     
     data = result.data[0]
@@ -127,9 +125,9 @@ def delete_note_endpoint(
     result = delete_note(access_token, note_id)
     
     if not result.data or len(result.data) == 0:
-        raise DomainError(
-            message="Delete note operation returned no data",
-            code="INVARIANT_VIOLATION",
+        raise InvariantViolated(
+            message="Delete note operation returned no data or access denied",
+            code="DB0403",
         )
     
     data = result.data[0]

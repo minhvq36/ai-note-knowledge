@@ -7,7 +7,7 @@ from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
 from app.db.membership_requests import request_join_tenant, invite_user_to_tenant, list_join_requests, list_invites
 from app.db.notes import create_note
-from app.errors.db import DomainError
+from app.errors.db import DomainError, NotFound
 from app.contracts.tenant import (
     CreateTenantPayload,
     CreateTenantResponse,
@@ -218,9 +218,9 @@ def get_tenant_details_endpoint(
     """
     
     if not result.data:
-        raise DomainError(
-                message="Tenant not found",
-                code="NOT_FOUND",
+        raise NotFound(
+                message="Tenant not found or access denied",
+                code="DB0101",
             )
     
     data = result.data[0]
