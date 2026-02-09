@@ -6,6 +6,7 @@ from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
 from app.db.membership_requests import request_join_tenant, invite_user_to_tenant, list_join_requests, list_invites
+from app.db.notes import create_note
 from app.errors.db import DomainError
 from app.contracts.tenant import (
     CreateTenantPayload,
@@ -24,6 +25,10 @@ from app.contracts.request import (
     InviteUserToTenantResponse,
     ListJoinRequestsResponse,
     ListInvitesResponse,
+)
+from app.contracts.note import (
+    CreateNotePayload,
+    CreateNoteResponse,
 )
 
 
@@ -396,4 +401,45 @@ def list_invites_endpoint(
     return ApiResponse(
         success=True,
         data=ListInvitesResponse(invites=invites),
+    )
+
+
+@router.post("/{tenant_id}/notes")
+def create_note_endpoint(
+    tenant_id: UUID,
+    payload: CreateNotePayload,
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    Create a new note in a tenant.
+    
+    Access control:
+    - Caller must be authenticated
+    - Caller must be a member of the tenant
+    - Caller automatically becomes the note owner
+    - RLS enforces member requirement
+    """
+    
+    content = payload.content
+    
+    result = create_note(access_token, tenant_id, content)
+    
+    if not result.data or len(result.data) == 0:
+        raise DomainError(
+            message="Create note operation returned no data",
+            code="INVARIANT_VIOLATION",
+        )
+    
+    data = result.data[0]
+    
+    return ApiResponse(
+        success=True,
+        data=CreateNoteResponse(
+            id=data["id"],
+            tenant_id=data["tenant_id"],
+            owner_id=data["owner_id"],
+            content=data["content"],
+            created_at=data["created_at"],
+            updated_at=data["updated_at"],
+        ),
     )

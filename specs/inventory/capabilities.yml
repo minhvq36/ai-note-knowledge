@@ -393,7 +393,7 @@ categories:
             required: false
             default: 0
         returns: list of tenant_join_requests
-        status: implementing
+        status: implemented
 
       - name: list_invites
         description: List pending/historical invites for a tenant
@@ -424,7 +424,7 @@ categories:
             required: false
             default: 0
         returns: list of tenant_join_requests with direction='invite'
-        status: implementing
+        status: implemented
 
       - name: list_my_invites
         description: List all pending invites for the authenticated user
@@ -447,7 +447,7 @@ categories:
             required: false
             default: 0
         returns: list of pending invite requests
-        status: implementing
+        status: implemented
 
       - name: list_my_join_requests
         description: List all join requests sent by the authenticated user
@@ -474,7 +474,7 @@ categories:
             required: false
             default: 0
         returns: list of join requests with direction='join'
-        status: implementing
+        status: implemented
 
   notes:
     name: Note Management
@@ -491,7 +491,7 @@ categories:
         roles:
           - member
           - admin
-          - owner
+          - tenant_owner
         parameters:
           - name: tenant_id
             type: uuid
@@ -501,7 +501,7 @@ categories:
             required: true
             max_length: null
         returns: note_id, created_at
-        status: planned
+        status: implementing
 
       - name: get_note
         description: Get a single note (with RLS-enforced access control)
@@ -523,7 +523,7 @@ categories:
         returns: note object
         notes:
           - access controlled by RLS (owner or shared user)
-        status: planned
+        status: implementing
 
       - name: list_my_notes
         description: List all notes the user owns or has access to
@@ -550,7 +550,7 @@ categories:
             type: uuid
             required: false
             description: Filter by tenant
-        returns: list of notes (owned or shared)
+        returns: list of notes (owned or shared or admin or tenant_owner)
         status: planned
 
       - name: list_tenant_notes
@@ -565,7 +565,7 @@ categories:
         roles:
           - member
           - admin
-          - owner
+          - tenant_owner
         parameters:
           - name: tenant_id
             type: uuid
@@ -593,7 +593,7 @@ categories:
           name: null
           comment: Direct update via RLS (no RPC needed yet)
         roles:
-          - owner
+          - note_owner
           - member_with_write_share
         parameters:
           - name: note_id
@@ -603,7 +603,7 @@ categories:
             type: string
             required: true
         returns: note object
-        status: planned
+        status: implementing
 
       - name: delete_note
         description: Soft-delete a note (owner-only)
@@ -614,7 +614,7 @@ categories:
           type: rpc
           name: delete_note
         roles:
-          - owner
+          - note_owner
         parameters:
           - name: note_id
             type: uuid
@@ -624,7 +624,7 @@ categories:
           - only_owner_can_delete
           - cannot_delete_already_deleted_note
           - cannot_delete_note_from_deleted_tenant
-        status: planned
+        status: implementing
 
   shares:
     name: Note Sharing
