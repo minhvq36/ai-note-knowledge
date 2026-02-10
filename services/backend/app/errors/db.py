@@ -102,6 +102,7 @@ ERROR_CODE_MAP = {
     'DB0503': (NotFound, 'Target user is not a tenant member'),
     'DB0504': (PermissionDenied, 'Only note owner can change share permissions'),
     'DB0505': (NotFound, 'Note not found or deleted'),
+    'DB0506': (PermissionDenied, 'Caller is not a member of the note\'s tenant'),
 }
 
 

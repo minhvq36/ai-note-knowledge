@@ -551,7 +551,7 @@ categories:
             required: false
             description: Filter by tenant
         returns: list of notes (owned or shared or admin or tenant_owner)
-        status: planned
+        status: implemented
 
       - name: list_tenant_notes
         description: List all active notes in a tenant (with RLS-enforced access)
@@ -579,7 +579,7 @@ categories:
         returns: list of notes in tenant (rls will filter by access)
         notes:
           - RLS filters deleted notes
-        status: implementing
+        status: implemented
 
       - name: update_note
         description: Update the content of a note (owner-only)
@@ -636,7 +636,7 @@ categories:
           type: rpc
           name: change_note_share_permission
         roles:
-          - owner
+          - note_owner
         parameters:
           - name: note_id
             type: uuid
@@ -653,7 +653,7 @@ categories:
           - owner_cannot_share_with_self
           - target_must_be_tenant_member
           - permission_must_be_valid
-        status: planned
+        status: implementing
 
       - name: revoke_share
         description: Revoke access to a note from a tenant member
@@ -665,7 +665,7 @@ categories:
           name: change_note_share_permission
           comment: Revoke is part of change_note_share_permission (delete row)
         roles:
-          - owner
+          - note_owner
         parameters:
           - name: note_id
             type: uuid
@@ -674,7 +674,7 @@ categories:
             type: uuid
             required: true
         returns: void
-        status: planned
+        status: implementing
 
       - name: list_note_shares
         description: List all users who have access to a note

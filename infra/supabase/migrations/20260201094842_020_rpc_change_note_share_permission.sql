@@ -72,6 +72,20 @@ begin
             detail = 'DB0504';
     end if;
 
+    /* Ensure sharer (caller) is tenant member */
+    if not exists (
+        select 1
+        from notes n
+        join tenant_members tm
+          on tm.tenant_id = n.tenant_id
+         and tm.user_id = auth.uid()
+        where n.id = p_note_id
+    ) then
+        raise exception using
+            message = 'Caller is not a member of the tenant',
+            detail = 'DB0506';
+    end if;
+    
     /* Ensure target is tenant member */
     if not exists (
         select 1
