@@ -6,7 +6,7 @@ from app.auth.deps import get_current_access_token
 from app.db.membership import leave_tenant
 from app.db.tenants import create_tenant, delete_tenant, list_tenants, get_tenant_details, list_tenant_members
 from app.db.membership_requests import request_join_tenant, invite_user_to_tenant, list_join_requests, list_invites
-from app.db.notes import create_note
+from app.db.notes import create_note, list_tenant_notes
 from app.errors.db import DomainError, NotFound
 from app.contracts.tenant import (
     CreateTenantPayload,
@@ -29,6 +29,8 @@ from app.contracts.request import (
 from app.contracts.note import (
     CreateNotePayload,
     CreateNoteResponse,
+    ListTenantNotesResponse,
+    NoteItem,
 )
 
 
@@ -192,7 +194,7 @@ def list_tenants_endpoint(
         success=True,
         data=ListTenantsResponse(
             tenants=tenants,
-            total=len(result.data),
+            total=result.count,
         ),
     )
 
@@ -274,7 +276,7 @@ def list_tenant_members_endpoint(
         success=True,
         data=ListTenantMembersResponse(
             members=members,
-            total=len(result.data),
+            total=result.count,
         ),
     )
 
@@ -441,5 +443,43 @@ def create_note_endpoint(
             content=data["content"],
             created_at=data["created_at"],
             updated_at=data["updated_at"],
+        ),
+    )
+
+@router.get("/{tenant_id}/notes")
+def list_tenant_notes_endpoint(
+    tenant_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List all notes in a specific tenant.
+    
+    Access control:
+    - User must be a member of the tenant
+    - RLS enforces member requirement
+    - Filters out soft-deleted notes (deleted_at IS NOT NULL)
+    """
+    
+    result = list_tenant_notes(access_token, tenant_id, limit, offset)
+    
+    notes = [
+        NoteItem(
+            id=item["id"],
+            tenant_id=item["tenant_id"],
+            owner_id=item["owner_id"],
+            content=item["content"],
+            created_at=item["created_at"],
+            updated_at=item["updated_at"],
+        )
+        for item in result.data
+    ]
+    
+    return ApiResponse(
+        success=True,
+        data=ListTenantNotesResponse(
+            notes=notes,
+            total=result.count,
         ),
     )

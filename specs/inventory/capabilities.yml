@@ -501,7 +501,7 @@ categories:
             required: true
             max_length: null
         returns: note_id, created_at
-        status: implementing
+        status: implemented
 
       - name: get_note
         description: Get a single note (with RLS-enforced access control)
@@ -523,7 +523,7 @@ categories:
         returns: note object
         notes:
           - access controlled by RLS (owner or shared user)
-        status: implementing
+        status: implemented
 
       - name: list_my_notes
         description: List all notes the user owns or has access to
@@ -563,9 +563,7 @@ categories:
           table: notes
           rls: true
         roles:
-          - member
-          - admin
-          - tenant_owner
+          - authenticated
         parameters:
           - name: tenant_id
             type: uuid
@@ -578,10 +576,10 @@ categories:
             type: integer
             required: false
             default: 0
-        returns: list of notes in tenant
+        returns: list of notes in tenant (rls will filter by access)
         notes:
           - RLS filters deleted notes
-        status: planned
+        status: implementing
 
       - name: update_note
         description: Update the content of a note (owner-only)
@@ -603,7 +601,7 @@ categories:
             type: string
             required: true
         returns: note object
-        status: implementing
+        status: implemented
 
       - name: delete_note
         description: Soft-delete a note (owner-only)
@@ -624,7 +622,7 @@ categories:
           - only_owner_can_delete
           - cannot_delete_already_deleted_note
           - cannot_delete_note_from_deleted_tenant
-        status: implementing
+        status: implemented
 
   shares:
     name: Note Sharing

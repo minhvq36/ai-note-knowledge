@@ -2,16 +2,17 @@
 HTTP endpoints for note management.
 
 Endpoints:
+- GET /notes - List notes the authenticated user owns or has access to
 - GET /notes/{note_id} - Get a single note
 - PATCH /notes/{note_id} - Update note content
 - DELETE /notes/{note_id} - Soft-delete a note
 """
 
 from uuid import UUID
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
-from app.db.notes import get_note, update_note, delete_note
+from app.db.notes import get_note, update_note, delete_note, list_my_notes
 from app.errors.db import (
     InvariantViolated,
     NotFound,
@@ -21,12 +22,51 @@ from app.contracts.note import (
     UpdateNotePayload,
     UpdateNoteResponse,
     DeleteNoteResponse,
+    ListMyNotesResponse,
+    NoteItem,
 )
 
 
 router = APIRouter(
     tags=["notes"],
 )
+
+
+@router.get("/notes")
+def list_my_notes_endpoint(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List all notes the authenticated user owns or has access to via share.
+    
+    Access control:
+    - RLS enforces: returns only notes user can read
+    - Filters out soft-deleted notes (deleted_at IS NOT NULL)
+    """
+    
+    result = list_my_notes(access_token, limit, offset)
+    
+    notes = [
+        NoteItem(
+            id=item["id"],
+            tenant_id=item["tenant_id"],
+            owner_id=item["owner_id"],
+            content=item["content"],
+            created_at=item["created_at"],
+            updated_at=item["updated_at"],
+        )
+        for item in result.data
+    ]
+    
+    return ApiResponse(
+        success=True,
+        data=ListMyNotesResponse(
+            notes=notes,
+            total=result.count,
+        ),
+    )
 
 
 @router.get("/notes/{note_id}")

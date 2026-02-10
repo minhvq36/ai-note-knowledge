@@ -156,7 +156,7 @@ def list_tenants(
         """
         result = (
             client.table("tenants")
-            .select("id, name, created_at")
+            .select("id, name, created_at", count="exact")
             .limit(limit)
             .offset(offset)
             .execute()
@@ -234,7 +234,7 @@ def list_tenant_members(
         """
         result = (
             client.table("tenant_members")
-            .select("user_id, role, created_at, users(email)")
+            .select("user_id, role, created_at, users(email)", count="exact")
             .eq("tenant_id", str(tenant_id))
             .limit(limit)
             .offset(offset)

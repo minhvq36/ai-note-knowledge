@@ -83,3 +83,47 @@ def delete_note(access_token: str, note_id: UUID):
         return result
     except Exception as e:
         raise map_db_error(e)
+
+def list_my_notes(access_token: str, limit: int = 20, offset: int = 0):
+    """
+    List all notes the authenticated user owns or has access to (via share).
+    RLS enforces access control: returns only notes user can read.
+    Notes: filters out soft-deleted notes (deleted_at IS NOT NULL).
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("notes").select("*", count="exact") \
+            .is_("deleted_at", "null") \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .offset(offset) \
+            .execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def list_tenant_notes(access_token: str, tenant_id: UUID, limit: int = 20, offset: int = 0):
+    """
+    List all notes in a specific tenant.
+    RLS enforces access control: user must be tenant member.
+    Notes: filters out soft-deleted notes (deleted_at IS NOT NULL).
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("notes").select("*", count="exact") \
+            .eq("tenant_id", str(tenant_id)) \
+            .is_("deleted_at", "null") \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .offset(offset) \
+            .execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)
