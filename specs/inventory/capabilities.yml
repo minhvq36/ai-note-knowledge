@@ -651,6 +651,7 @@ categories:
         returns: void
         invariants:
           - owner_cannot_share_with_self
+          - note_owner_must_be_tenant_member
           - target_must_be_tenant_member
           - permission_must_be_valid
         status: implementing
@@ -661,9 +662,9 @@ categories:
           method: DELETE
           path: /notes/{note_id}/shares/{user_id}
         source:
-          type: rpc
-          name: change_note_share_permission
-          comment: Revoke is part of change_note_share_permission (delete row)
+          type: query
+          table: note_shares
+          rls: true
         roles:
           - note_owner
         parameters:

@@ -5,7 +5,8 @@ Request/Response contracts for note management operations.
 from pydantic import BaseModel
 from uuid import UUID
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, Literal
+
 
 
 class CreateNotePayload(BaseModel):
@@ -95,3 +96,41 @@ class ListTenantNotesResponse(BaseModel):
     """
     notes: List[NoteItem]
     total: int
+
+class ShareNotePayload(BaseModel):
+    """
+    Payload for sharing a note with another user.
+    
+    Permission is strictly validated at schema level.
+    Only 'read' or 'write' are accepted.
+    """
+    target_user_id: UUID
+    permission: Literal['read', 'write']
+
+
+class ShareNoteResponse(BaseModel):
+    """
+    Response when note is shared.
+    
+    Permission is guaranteed to be 'read' or 'write'.
+    """
+    note_id: UUID
+    target_user_id: UUID
+    permission: Literal['read', 'write']
+    result: str  # 'shared'
+
+
+class RevokeSharePayload(BaseModel):
+    """
+    Payload for revoking share access.
+    """
+    target_user_id: UUID
+
+
+class RevokeShareResponse(BaseModel):
+    """
+    Response when share is revoked.
+    """
+    note_id: UUID
+    target_user_id: UUID
+    result: str  # 'revoked'

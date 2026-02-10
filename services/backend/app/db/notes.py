@@ -127,3 +127,57 @@ def list_tenant_notes(access_token: str, tenant_id: UUID, limit: int = 20, offse
         return result
     except Exception as e:
         raise map_db_error(e)
+
+
+def share_note(access_token: str, note_id: UUID, target_user_id: UUID, permission: str):
+    """
+    Share a note with another user (or change existing share permission).
+    
+    RPC enforces:
+    - Caller must own the note
+    - Target must be tenant member
+    - Cannot share to self
+    - Permission must be 'read' or 'write'
+    - Atomic operation: revoke old + grant new
+    - Audit log is written
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.rpc(
+            "change_note_share_permission",
+            {
+                "p_note_id": str(note_id),
+                "p_target_user_id": str(target_user_id),
+                "p_new_permission": permission,
+            },
+        ).execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def revoke_share(access_token: str, note_id: UUID, target_user_id: UUID):
+    """
+    Revoke share access to a note.
+    
+    RLS enforces:
+    - Caller must own the note
+    - Caller must be tenant member
+    - Note must be active
+    - Deletes the note_shares record
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("note_shares").delete() \
+            .eq("note_id", str(note_id)) \
+            .eq("user_id", str(target_user_id)) \
+            .execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)

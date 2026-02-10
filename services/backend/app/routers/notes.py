@@ -6,16 +6,19 @@ Endpoints:
 - GET /notes/{note_id} - Get a single note
 - PATCH /notes/{note_id} - Update note content
 - DELETE /notes/{note_id} - Soft-delete a note
+- POST /notes/{note_id}/shares - Share a note with another user
+- DELETE /notes/{note_id}/shares/{target_user_id} - Revoke share access
 """
 
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
-from app.db.notes import get_note, update_note, delete_note, list_my_notes
+from app.db.notes import get_note, update_note, delete_note, list_my_notes, share_note, revoke_share
 from app.errors.db import (
     InvariantViolated,
     NotFound,
+    PermissionDenied,
     )
 from app.contracts.note import (
     GetNoteResponse,
@@ -24,6 +27,9 @@ from app.contracts.note import (
     DeleteNoteResponse,
     ListMyNotesResponse,
     NoteItem,
+    ShareNotePayload,
+    ShareNoteResponse,
+    RevokeShareResponse,
 )
 
 
@@ -177,5 +183,68 @@ def delete_note_endpoint(
         data=DeleteNoteResponse(
             note_id=data["note_id"],
             result=data["result"],
+        ),
+    )
+
+@router.post("/notes/{note_id}/shares")
+def share_note_endpoint(
+    note_id: UUID,
+    payload: ShareNotePayload,
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    Share a note with another user or change share permission.
+    
+    Access control:
+    - Only note owner can share
+    - Target must be tenant member
+    - Cannot share to self
+    - RPC enforces all rules
+    - Audit log is created
+    """
+    
+    target_user_id = payload.target_user_id
+    permission = payload.permission
+    
+    """
+    RPC call returns void, so result.data will be empty.
+    If no error is raised, it means success.
+    """
+    result = share_note(access_token, note_id, target_user_id, permission)
+    
+    return ApiResponse(
+        success=True,
+        data=ShareNoteResponse(
+            note_id=note_id,
+            target_user_id=target_user_id,
+            permission=permission,
+            result="shared",
+        ),
+    )
+
+
+@router.delete("/notes/{note_id}/shares/{target_user_id}")
+def revoke_share_endpoint(
+    note_id: UUID,
+    target_user_id: UUID,
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    Revoke share access to a note.
+    
+    Access control:
+    - Only note owner can revoke
+    - Caller must be tenant member
+    - RLS enforces access control
+    """
+    
+    result = revoke_share(access_token, note_id, target_user_id)
+    
+    return ApiResponse(
+        success=True,
+        data=RevokeShareResponse(
+            note_id=note_id,
+            target_user_id=target_user_id,
+            result="revoked",
         ),
     )
