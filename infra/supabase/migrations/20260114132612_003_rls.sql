@@ -188,6 +188,9 @@ using (
     exists (
         select 1
         from notes n
+        join tenant_members tm
+          on tm.tenant_id = n.tenant_id
+         and tm.user_id = (select auth.uid())
         where n.id = note_shares.note_id
           and n.owner_id = (select auth.uid())
           and n.deleted_at is null
