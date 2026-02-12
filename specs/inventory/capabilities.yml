@@ -620,6 +620,7 @@ categories:
         returns: note_id, result
         invariants:
           - only_owner_can_delete
+          - caller_must_be_tenant_member
           - cannot_delete_already_deleted_note
           - cannot_delete_note_from_deleted_tenant
         status: implemented
@@ -662,8 +663,8 @@ categories:
           method: DELETE
           path: /notes/{note_id}/shares/{user_id}
         source:
-          type: query
-          table: note_shares
+          type: rpc
+          name: revoke_note_share
           rls: true
         roles:
           - note_owner
@@ -675,7 +676,9 @@ categories:
             type: uuid
             required: true
         returns: void
-        status: implemented
+        invariants:
+          - note_owner_must_be_tenant_member
+        status: implementing
 
       - name: list_note_shares
         description: List all users who have access to a note

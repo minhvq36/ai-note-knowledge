@@ -235,16 +235,11 @@ def revoke_share_endpoint(
     Access control:
     - Only note owner can revoke
     - Caller must be tenant member
-    - RLS enforces access control
+    - RPC enforces all access control rules
+    - If any error occurs, RPC raises exception
     """
     
     result = revoke_share(access_token, note_id, target_user_id)
-    
-    if result.count == 0:
-        raise PermissionDenied(
-            message="Revoke share operation failed or access denied",
-            code="DB0504",
-        )
     
     return ApiResponse(
         success=True,
