@@ -184,3 +184,55 @@ def revoke_share(access_token: str, note_id: UUID, target_user_id: UUID):
         return result
     except Exception as e:
         raise map_db_error(e)
+
+
+def list_note_shares(access_token: str, note_id: UUID, limit: int = 20, offset: int = 0):
+    """
+    List all users who have access to a note.
+    
+    RLS enforces:
+    - Caller must be note owner, tenant admin/owner, or be a sharee of the note
+    - Returns minimal note_shares records (user_id, permission, created_at)
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("note_shares").select("note_id, user_id, permission, created_at", count="exact") \
+            .eq("note_id", str(note_id)) \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .offset(offset) \
+            .execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)
+
+
+def list_shared_with_me(access_token: str, limit: int = 20, offset: int = 0):
+    """
+    List all notes shared with the authenticated user.
+    
+    Query: Join note_shares with notes to get note details.
+    RLS enforces:
+    - User can only see notes they have explicit share access to
+    - Returns note details with permission level from share
+    """
+    try:
+        client = get_supabase_client()
+        client.postgrest.auth(access_token)
+
+        result = client.table("note_shares").select(
+            "note_id, notes(id, tenant_id, owner_id, content, created_at, updated_at), permission, created_at",
+            count="exact"
+        ) \
+            .is_("notes.deleted_at", "null") \
+            .order("created_at", desc=True) \
+            .limit(limit) \
+            .offset(offset) \
+            .execute()
+
+        return result
+    except Exception as e:
+        raise map_db_error(e)

@@ -8,13 +8,15 @@ Endpoints:
 - DELETE /notes/{note_id} - Soft-delete a note
 - POST /notes/{note_id}/shares - Share a note with another user
 - DELETE /notes/{note_id}/shares/{target_user_id} - Revoke share access
+- GET /notes/{note_id}/shares - List users who have access to a note
+- GET /me/notes/shared - List notes shared with the authenticated user
 """
 
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
-from app.db.notes import get_note, update_note, delete_note, list_my_notes, share_note, revoke_share
+from app.db.notes import get_note, update_note, delete_note, list_my_notes, share_note, revoke_share, list_note_shares, list_shared_with_me
 from app.errors.db import (
     InvariantViolated,
     NotFound,
@@ -30,6 +32,10 @@ from app.contracts.note import (
     ShareNotePayload,
     ShareNoteResponse,
     RevokeShareResponse,
+    NoteShareItem,
+    ListNoteSharesResponse,
+    SharedNoteItem,
+    ListSharedWithMeResponse,
 )
 
 
@@ -247,5 +253,83 @@ def revoke_share_endpoint(
             note_id=note_id,
             target_user_id=target_user_id,
             result="revoked",
+        ),
+    )
+
+
+@router.get("/notes/{note_id}/shares")
+def list_note_shares_endpoint(
+    note_id: UUID,
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List all users who have access to a note.
+    
+    Access control:
+    - Note owner can view shares
+    - Tenant admin/owner can view shares
+    - Sharee (user who has the note shared with them) can view shares
+    - RLS enforces access control at database level
+    """
+    
+    result = list_note_shares(access_token, note_id, limit, offset)
+    
+    shares = [
+        NoteShareItem(
+            note_id=item["note_id"],
+            user_id=item["user_id"],
+            permission=item["permission"],
+            created_at=item["created_at"],
+        )
+        for item in result.data
+    ]
+    
+    return ApiResponse(
+        success=True,
+        data=ListNoteSharesResponse(
+            shares=shares,
+            total=result.count,
+        ),
+    )
+
+
+@router.get("/me/notes/shared")
+def list_shared_with_me_endpoint(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List all notes shared with the authenticated user.
+    
+    Access control:
+    - User can see only notes shared with them
+    - RLS enforces access control at database level
+    - Returns minimal note data with permission level
+    """
+    
+    result = list_shared_with_me(access_token, limit, offset)
+    
+    notes = [
+        SharedNoteItem(
+            id=item["notes"]["id"],
+            tenant_id=item["notes"]["tenant_id"],
+            owner_id=item["notes"]["owner_id"],
+            content=item["notes"]["content"],
+            permission=item["permission"],
+            created_at=item["notes"]["created_at"],
+            updated_at=item["notes"]["updated_at"],
+            shared_at=item["created_at"],
+        )
+        for item in result.data
+    ]
+    
+    return ApiResponse(
+        success=True,
+        data=ListSharedWithMeResponse(
+            notes=notes,
+            total=result.count,
         ),
     )

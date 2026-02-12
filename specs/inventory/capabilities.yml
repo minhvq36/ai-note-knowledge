@@ -691,25 +691,36 @@ categories:
           rls: true
         roles:
           - note_owner
-          - admin/tenant_owner
+          - admin
+          - tenant_owner
+          - sharee
         parameters:
           - name: note_id
             type: uuid
             required: true
-        returns: list of note_shares user_id (minimal)
-        status: implementing
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of note_shares (user_id, permission, created_at) with total count
+        status: implemented
 
       - name: list_shared_with_me
         description: List all notes shared with the authenticated user
         http:
           method: GET
-          path: /notes/shared-with-me
+          path: /me/notes/shared
         source:
           type: query
           table: note_shares
+          join_table: notes
           rls: true
         roles:
-          - authenticated
+          - sharee
         parameters:
           - name: limit
             type: integer
@@ -719,8 +730,8 @@ categories:
             type: integer
             required: false
             default: 0
-        returns: list of note_shares with note and owner info
-        status: implementing
+        returns: list of notes with permission level and total count
+        status: implemented
 
   # audit:
   #   name: Audit & Logs

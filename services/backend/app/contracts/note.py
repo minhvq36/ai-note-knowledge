@@ -134,3 +134,43 @@ class RevokeShareResponse(BaseModel):
     note_id: UUID
     target_user_id: UUID
     result: str  # 'revoked'
+
+
+class NoteShareItem(BaseModel):
+    """
+    Represents a single note share record.
+    """
+    note_id: UUID
+    user_id: UUID
+    permission: Literal['read', 'write']
+    created_at: datetime
+
+
+class ListNoteSharesResponse(BaseModel):
+    """
+    Response for listing all users who have access to a note.
+    """
+    shares: List[NoteShareItem]
+    total: int
+
+
+class SharedNoteItem(BaseModel):
+    """
+    Represents a note shared with the authenticated user.
+    """
+    id: UUID
+    tenant_id: UUID
+    owner_id: UUID
+    content: str
+    permission: Literal['read', 'write']
+    created_at: datetime
+    updated_at: datetime
+    shared_at: datetime
+
+
+class ListSharedWithMeResponse(BaseModel):
+    """
+    Response for listing notes shared with the authenticated user.
+    """
+    notes: List[SharedNoteItem]
+    total: int
