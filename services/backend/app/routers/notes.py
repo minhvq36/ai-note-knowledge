@@ -240,6 +240,12 @@ def revoke_share_endpoint(
     
     result = revoke_share(access_token, note_id, target_user_id)
     
+    if result.count == 0:
+        raise PermissionDenied(
+            message="Revoke share operation failed or access denied",
+            code="DB0504",
+        )
+    
     return ApiResponse(
         success=True,
         data=RevokeShareResponse(

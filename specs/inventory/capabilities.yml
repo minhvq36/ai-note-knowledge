@@ -654,7 +654,7 @@ categories:
           - note_owner_must_be_tenant_member
           - target_must_be_tenant_member
           - permission_must_be_valid
-        status: implementing
+        status: implemented
 
       - name: revoke_share
         description: Revoke access to a note from a tenant member
@@ -675,7 +675,7 @@ categories:
             type: uuid
             required: true
         returns: void
-        status: implementing
+        status: implemented
 
       - name: list_note_shares
         description: List all users who have access to a note

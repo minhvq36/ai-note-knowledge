@@ -173,7 +173,7 @@ def revoke_share(access_token: str, note_id: UUID, target_user_id: UUID):
         client = get_supabase_client()
         client.postgrest.auth(access_token)
 
-        result = client.table("note_shares").delete() \
+        result = client.table("note_shares").delete(count="exact") \
             .eq("note_id", str(note_id)) \
             .eq("user_id", str(target_user_id)) \
             .execute()
