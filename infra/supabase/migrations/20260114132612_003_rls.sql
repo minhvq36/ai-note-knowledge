@@ -139,33 +139,52 @@ with check (
 
 -- RLS for note_shares table
 -- CAUTION: make sure notes RLS is defined before note_shares RLS to avoid circular dependency
-create policy "note_shares_select_owner_or_shared_or_tenant_admin"
-on note_shares
-for select
-using (
-    exists (
+create or replace function user_can_view_note_shares(p_note_id uuid)
+returns boolean
+language plpgsql
+security definer
+stable
+as $$
+declare
+    v_result boolean;
+begin
+    /*
+      Single access check:
+      - Must be tenant member
+      - AND one of:
+        - Note owner
+        - Tenant admin/owner
+        - Sharee of the note
+    */
+
+    select exists (
         select 1
         from notes n
         join tenant_members tm
           on tm.tenant_id = n.tenant_id
          and tm.user_id = auth.uid()
-        where n.id = note_shares.note_id
+        where n.id = p_note_id
           and (
-              /* Case 1: note owner (sharer) */
-              n.owner_id = (select auth.uid())
-
-              /* Case 2: Sharee - can see all shares of notes they have access to */
-              or exists (
-                  select 1 
-                  from note_shares ns_internal 
-                  where ns_internal.note_id = n.id 
-                    and ns_internal.user_id = auth.uid()
-              )
-
-              /* Case 3: tenant admin / tenant owner */
-              or tm.role in ('admin', 'owner')
+                n.owner_id = auth.uid()
+                or tm.role in ('admin', 'owner')
+                or exists (
+                    select 1
+                    from note_shares ns
+                    where ns.note_id = n.id
+                      and ns.user_id = auth.uid()
+                )
           )
     )
+    into v_result;
+
+    return v_result;
+end;
+$$;
+create policy "note_shares_select"
+on note_shares
+for select
+using (
+    user_can_view_note_shares(note_shares.note_id)
 );
 
 
