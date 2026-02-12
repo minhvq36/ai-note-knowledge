@@ -154,8 +154,13 @@ using (
               /* Case 1: note owner (sharer) */
               n.owner_id = (select auth.uid())
 
-              /* Case 2: shared user (sharee) */
-              or note_shares.user_id = (select auth.uid())
+              /* Case 2: Sharee - can see all shares of notes they have access to */
+              or exists (
+                  select 1 
+                  from note_shares ns_internal 
+                  where ns_internal.note_id = n.id 
+                    and ns_internal.user_id = auth.uid()
+              )
 
               /* Case 3: tenant admin / tenant owner */
               or tm.role in ('admin', 'owner')

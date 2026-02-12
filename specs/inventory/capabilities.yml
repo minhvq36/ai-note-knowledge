@@ -678,7 +678,7 @@ categories:
         returns: void
         invariants:
           - note_owner_must_be_tenant_member
-        status: implementing
+        status: implemented
 
       - name: list_note_shares
         description: List all users who have access to a note
@@ -690,13 +690,14 @@ categories:
           table: note_shares
           rls: true
         roles:
-          - owner
+          - note_owner
+          - admin/tenant_owner
         parameters:
           - name: note_id
             type: uuid
             required: true
-        returns: list of note_shares with user info
-        status: planned
+        returns: list of note_shares user_id (minimal)
+        status: implementing
 
       - name: list_shared_with_me
         description: List all notes shared with the authenticated user
@@ -719,7 +720,7 @@ categories:
             required: false
             default: 0
         returns: list of note_shares with note and owner info
-        status: planned
+        status: implementing
 
   # audit:
   #   name: Audit & Logs
