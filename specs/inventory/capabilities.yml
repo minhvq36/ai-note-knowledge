@@ -717,7 +717,6 @@ categories:
         source:
           type: query
           table: note_shares
-          join_table: notes
           rls: true
         roles:
           - sharee
@@ -730,8 +729,8 @@ categories:
             type: integer
             required: false
             default: 0
-        returns: list of notes with permission level and total count
-        status: implemented
+        returns: list of note_shares note_id (minimal) for now (no join with notes table)
+        status: implementing
 
   # audit:
   #   name: Audit & Logs

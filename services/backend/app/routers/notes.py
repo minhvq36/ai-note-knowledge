@@ -9,14 +9,14 @@ Endpoints:
 - POST /notes/{note_id}/shares - Share a note with another user
 - DELETE /notes/{note_id}/shares/{target_user_id} - Revoke share access
 - GET /notes/{note_id}/shares - List users who have access to a note
-- GET /me/notes/shared - List notes shared with the authenticated user
 """
 
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
-from app.db.notes import get_note, update_note, delete_note, list_my_notes, share_note, revoke_share, list_note_shares, list_shared_with_me
+from app.db.notes import get_note, update_note, delete_note, list_my_notes
+from app.db.shares import share_note, revoke_share, list_note_shares
 from app.errors.db import (
     InvariantViolated,
     NotFound,
@@ -34,17 +34,16 @@ from app.contracts.note import (
     RevokeShareResponse,
     NoteShareItem,
     ListNoteSharesResponse,
-    SharedNoteItem,
-    ListSharedWithMeResponse,
 )
 
 
 router = APIRouter(
+    prefix="/notes",
     tags=["notes"],
 )
 
 
-@router.get("/notes")
+@router.get("")
 def list_my_notes_endpoint(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -81,7 +80,7 @@ def list_my_notes_endpoint(
     )
 
 
-@router.get("/notes/{note_id}")
+@router.get("/{note_id}")
 def get_note_endpoint(
     note_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -119,7 +118,7 @@ def get_note_endpoint(
     )
 
 
-@router.patch("/notes/{note_id}")
+@router.patch("/{note_id}")
 def update_note_endpoint(
     note_id: UUID,
     payload: UpdateNotePayload,
@@ -159,7 +158,7 @@ def update_note_endpoint(
     )
 
 
-@router.delete("/notes/{note_id}")
+@router.delete("/{note_id}")
 def delete_note_endpoint(
     note_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -192,7 +191,8 @@ def delete_note_endpoint(
         ),
     )
 
-@router.post("/notes/{note_id}/shares")
+
+@router.post("/{note_id}/shares")
 def share_note_endpoint(
     note_id: UUID,
     payload: ShareNotePayload,
@@ -229,7 +229,7 @@ def share_note_endpoint(
     )
 
 
-@router.delete("/notes/{note_id}/shares/{target_user_id}")
+@router.delete("/{note_id}/shares/{target_user_id}")
 def revoke_share_endpoint(
     note_id: UUID,
     target_user_id: UUID,
@@ -257,7 +257,7 @@ def revoke_share_endpoint(
     )
 
 
-@router.get("/notes/{note_id}/shares")
+@router.get("/{note_id}/shares")
 def list_note_shares_endpoint(
     note_id: UUID,
     limit: int = Query(20, ge=1, le=100),
@@ -290,46 +290,6 @@ def list_note_shares_endpoint(
         success=True,
         data=ListNoteSharesResponse(
             shares=shares,
-            total=result.count,
-        ),
-    )
-
-
-@router.get("/me/notes/shared")
-def list_shared_with_me_endpoint(
-    limit: int = Query(20, ge=1, le=100),
-    offset: int = Query(0, ge=0),
-    access_token: str = Depends(get_current_access_token),
-):
-    """
-    List all notes shared with the authenticated user.
-    
-    Access control:
-    - User can see only notes shared with them
-    - RLS enforces access control at database level
-    - Returns minimal note data with permission level
-    """
-    
-    result = list_shared_with_me(access_token, limit, offset)
-    
-    notes = [
-        SharedNoteItem(
-            id=item["notes"]["id"],
-            tenant_id=item["notes"]["tenant_id"],
-            owner_id=item["notes"]["owner_id"],
-            content=item["notes"]["content"],
-            permission=item["permission"],
-            created_at=item["notes"]["created_at"],
-            updated_at=item["notes"]["updated_at"],
-            shared_at=item["created_at"],
-        )
-        for item in result.data
-    ]
-    
-    return ApiResponse(
-        success=True,
-        data=ListSharedWithMeResponse(
-            notes=notes,
             total=result.count,
         ),
     )

@@ -1,18 +1,24 @@
 """
-HTTP endpoints for authenticated user's personal membership requests and invites.
+HTTP endpoints for authenticated user's personal resources (requests, invites, shared notes).
 
 Endpoints:
 - GET /me/invites/pending - List pending invites directed to authenticated user
 - GET /me/requests - List join requests sent by authenticated user
+- GET /me/notes/shared - List notes shared with authenticated user
 """
 
+from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership_requests import list_my_invites, list_my_join_requests
+from app.db.shares import list_shared_with_me
 from app.contracts.request import (
     ListMyInvitesResponse,
     ListMyJoinRequestsResponse,
+)
+from app.contracts.note import (
+    ListSharedWithMeResponse,
 )
 
 
@@ -69,4 +75,30 @@ def list_my_join_requests_endpoint(
     return ApiResponse(
         success=True,
         data=ListMyJoinRequestsResponse(requests=requests),
+    )
+
+
+@router.get("/notes/shared")
+def list_shared_with_me_endpoint(
+    limit: int = Query(20, ge=1, le=100),
+    offset: int = Query(0, ge=0),
+    access_token: str = Depends(get_current_access_token),
+):
+    """
+    List all note shares granted to the authenticated user.
+    
+    Access control:
+    - User can see only notes shared with them
+    - RLS enforces access control at database level
+    - Returns share records (note_id, permission, created_at)
+    """
+    
+    result = list_shared_with_me(access_token, limit, offset)
+    
+    return ApiResponse(
+        success=True,
+        data=ListSharedWithMeResponse(
+            shares=result.data if result.data else [],
+            total=result.count,
+        ),
     )

@@ -154,23 +154,9 @@ class ListNoteSharesResponse(BaseModel):
     total: int
 
 
-class SharedNoteItem(BaseModel):
-    """
-    Represents a note shared with the authenticated user.
-    """
-    id: UUID
-    tenant_id: UUID
-    owner_id: UUID
-    content: str
-    permission: Literal['read', 'write']
-    created_at: datetime
-    updated_at: datetime
-    shared_at: datetime
-
-
 class ListSharedWithMeResponse(BaseModel):
     """
-    Response for listing notes shared with the authenticated user.
+    Response for listing note shares granted to the authenticated user.
     """
-    notes: List[SharedNoteItem]
+    shares: List[NoteShareItem]
     total: int
