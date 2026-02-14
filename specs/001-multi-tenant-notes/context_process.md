@@ -307,6 +307,40 @@ Full lifecycle with RLS-enforced access control validated.
 * ✅ Read-plane fully exposed and RLS-protected
 * ✅ Cross-tenant isolation verified
 
+Tenant Management
+POST /tenants (Tạo tenant)
+DELETE /tenants/{tenant_id} (Xóa tenant)
+POST /tenants/{tenant_id}/members/{user_id}/role (Đổi vai trò thành viên)
+DELETE /tenants/{tenant_id}/members/{user_id} (Xóa thành viên)
+POST /tenants/{tenant_id}/leave (Rời khỏi tenant)
+GET /tenants (Liệt kê các tenant của user)
+GET /tenants/{tenant_id} (Chi tiết tenant)
+GET /tenants/{tenant_id}/members (Liệt kê thành viên tenant)
+Membership Workflow
+POST /tenants/{tenant_id}/requests/join (Gửi yêu cầu tham gia tenant)
+POST /requests/{request_id}/approve (Duyệt yêu cầu tham gia)
+POST /requests/{request_id}/reject (Từ chối yêu cầu tham gia)
+POST /requests/{request_id}/cancel (Hủy yêu cầu tham gia)
+POST /tenants/{tenant_id}/invites (Mời user vào tenant)
+POST /requests/{request_id}/accept (Chấp nhận lời mời)
+POST /requests/{request_id}/decline (Từ chối lời mời)
+POST /requests/{request_id}/revoke (Hủy lời mời)
+GET /tenants/{tenant_id}/requests/join (Liệt kê yêu cầu tham gia)
+GET /tenants/{tenant_id}/invites (Liệt kê lời mời của tenant)
+GET /me/invites/pending (Liệt kê lời mời đến user)
+GET /me/requests (Liệt kê yêu cầu tham gia của user)
+Notes & Sharing
+POST /tenants/{tenant_id}/notes (Tạo note)
+GET /notes/{note_id} (Lấy chi tiết note)
+GET /notes (Liệt kê note user sở hữu hoặc được chia sẻ)
+GET /tenants/{tenant_id}/notes (Liệt kê note trong tenant)
+PATCH /notes/{note_id} (Cập nhật note)
+DELETE /notes/{note_id} (Xóa note)
+POST /notes/{note_id}/shares (Chia sẻ note)
+DELETE /notes/{note_id}/shares/{user_id} (Hủy chia sẻ note)
+GET /notes/{note_id}/shares (Liệt kê user được chia sẻ note)
+GET /me/notes/shared (Liệt kê note được chia sẻ với user)
+
 ### Not Yet Addressed
 
 * ⚠️ Observability (structured logging, request correlation)
