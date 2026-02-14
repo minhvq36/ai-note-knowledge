@@ -28,7 +28,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Ensure caller is a member of the tenant */
@@ -38,7 +40,9 @@ begin
         where tm.tenant_id = p_tenant_id
           and tm.user_id = (select auth.uid())
     ) then
-        raise exception 'You are not a member of this tenant';
+        raise exception using
+            message = 'You are not a member of this tenant',
+            detail = 'DB0208';
     end if;
 
     /* If caller is owner, ensure not the last owner */
@@ -69,7 +73,9 @@ begin
           and tm.role = 'owner';
 
         if v_owner_count = 1 then
-            raise exception 'Cannot leave tenant as the last owner';
+            raise exception using
+                message = 'Cannot leave tenant as the last owner',
+                detail = 'DB0209';
         end if;
     end if;
 

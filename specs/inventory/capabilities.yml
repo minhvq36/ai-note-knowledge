@@ -1,0 +1,769 @@
+categories:
+  tenant:
+    name: Tenant Management
+    capabilities:
+      - name: create_tenant
+        description: Create a new tenant and become the owner
+        http:
+          method: POST
+          path: /tenants
+        source:
+          type: rpc
+          name: create_tenant
+        roles:
+          - authenticated
+        parameters:
+          - name: name
+            type: string
+            required: true
+            description: Tenant name
+        returns: uuid (tenant_id)
+        invariants: []
+        status: implemented
+
+      - name: change_member_role
+        description: Change the role of a tenant member
+        http:
+          method: POST
+          path: /tenants/{tenant_id}/members/{user_id}/role
+        source:
+          type: rpc
+          name: change_tenant_member_role
+        roles:
+          - owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: user_id
+            type: uuid
+            required: true
+          - name: role
+            type: enum
+            values: [owner, admin, member]
+            required: true
+        invariants:
+          - last_owner_cannot_be_downgraded
+          - tenant_must_have_at_least_one_owner
+        status: implemented
+
+      - name: remove_member
+        description: Remove a tenant member (owner/admin action)
+        http:
+          method: DELETE
+          path: /tenants/{tenant_id}/members/{user_id}
+        source:
+          type: rpc
+          name: remove_tenant_member
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: user_id
+            type: uuid
+            required: true
+        invariants:
+          - last_owner_cannot_be_removed
+          - admin_cannot_remove_owner
+          - admin_cannot_remove_admin
+          - member_cannot_remove_anyone
+          - self_removal_not_allowed_use_leave_tenant
+        status: implemented
+
+      - name: leave_tenant
+        description: User leaves a tenant they belong to
+        http:
+          method: POST
+          path: /tenants/{tenant_id}/leave
+        source:
+          type: rpc
+          name: leave_tenant
+        roles:
+          - member
+          - admin
+          - owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+        invariants:
+          - last_owner_cannot_leave
+          - tenant_must_have_at_least_one_owner
+        status: implemented
+
+      - name: delete_tenant
+        description: Delete a tenant (owner-only, must be last owner)
+        http:
+          method: DELETE
+          path: /tenants/{tenant_id}
+        source:
+          type: rpc
+          name: delete_tenant
+        roles:
+          - owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+        invariants:
+          - only_last_owner_can_delete
+          - tenant_must_not_have_other_owners
+        status: implemented
+
+      - name: list_tenant_members
+        description: List members of a tenant with pagination
+        http:
+          method: GET
+          path: /tenants/{tenant_id}/members
+        source:
+          type: query
+          table: tenant_members
+          rls: true
+        roles:
+          - member
+          - admin
+          - owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of tenant_members with user info
+        notes:
+          - projection varies by role
+        status: implemented
+
+      - name: list_tenants
+        description: List all tenants the authenticated user belongs to
+        http:
+          method: GET
+          path: /tenants
+        source:
+          type: query
+          table: tenant_members
+          rls: true
+        roles:
+          - member
+          - admin
+          - owner
+        parameters:
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of tenant_members with tenant info
+        status: implemented
+
+      - name: get_tenant_details
+        description: Get detailed information about a specific tenant
+        http:
+          method: GET
+          path: /tenants/{tenant_id}
+        source:
+          type: query
+          table: tenants
+          rls: true
+        roles:
+          - member
+          - admin
+          - owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+        returns: tenant object with member count
+        status: implemented
+
+  membership:
+    name: Membership Management
+    capabilities:
+      - name: request_join_tenant
+        description: Request to join a tenant
+        http:
+          method: POST
+          path: /tenants/{tenant_id}/requests/join
+        source:
+          type: rpc
+          name: request_join_tenant
+        roles:
+          - authenticated
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - no_duplicate_pending_join_requests
+          - cannot_request_if_already_member
+          - cannot_have_join_and_invite_pending_simultaneously
+        status: implemented
+
+      - name: approve_join_request
+        description: Approve a pending join request (admin/owner action)
+        http:
+          method: POST
+          path: /requests/{request_id}/approve
+        source:
+          type: rpc
+          name: approve_join_request
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_join_requests_can_be_approved
+          - only_pending_requests_can_be_approved
+        status: implemented
+
+      - name: reject_join_request
+        description: Reject a pending join request (admin/owner action)
+        http:
+          method: POST
+          path: /requests/{request_id}/reject
+        source:
+          type: rpc
+          name: reject_join_request
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_join_requests_can_be_rejected
+          - only_pending_requests_can_be_rejected
+        status: implemented
+
+      - name: cancel_join_request
+        description: Cancel a pending join request (requester action)
+        http:
+          method: POST
+          path: /requests/{request_id}/cancel
+        source:
+          type: rpc
+          name: cancel_join_request
+        roles:
+          - authenticated
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_join_requests_can_be_cancelled
+          - only_pending_requests_can_be_cancelled
+          - only_requester_can_cancel
+        status: implemented
+
+      - name: invite_user_to_tenant
+        description: Invite a user to join a tenant (owner/admin action)
+        http:
+          method: POST
+          path: /tenants/{tenant_id}/invites
+        source:
+          type: rpc
+          name: invite_user_to_tenant
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: target_user_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - no_duplicate_pending_invites
+          - cannot_invite_existing_member
+          - cannot_have_join_and_invite_pending_simultaneously
+        status: implemented
+
+      - name: accept_invite
+        description: Accept a pending invite to join a tenant
+        http:
+          method: POST
+          path: /requests/{request_id}/accept
+        source:
+          type: rpc
+          name: accept_invite
+        roles:
+          - authenticated
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_invite_requests_can_be_accepted
+          - only_pending_invites_can_be_accepted
+          - only_invited_user_can_accept
+        status: implemented
+
+      - name: decline_invite
+        description: Decline a pending invite to join a tenant
+        http:
+          method: POST
+          path: /requests/{request_id}/decline
+        source:
+          type: rpc
+          name: decline_invite
+        roles:
+          - authenticated
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_invite_requests_can_be_declined
+          - only_pending_invites_can_be_declined
+          - only_invited_user_can_decline
+        status: implemented
+
+      - name: revoke_invite
+        description: Cancel a pending invite (owner/admin action)
+        http:
+          method: POST
+          path: /requests/{request_id}/revoke
+        source:
+          type: rpc
+          name: revoke_invite
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: request_id
+            type: uuid
+            required: true
+        returns: request_id, result
+        invariants:
+          - only_invite_requests_can_be_cancelled
+          - only_pending_invites_can_be_cancelled
+          - only_owner_or_admin_can_cancel
+        status: implemented
+
+      - name: list_join_requests
+        description: List pending/historical join requests for a tenant
+        http:
+          method: GET
+          path: /tenants/{tenant_id}/requests/join
+        source:
+          type: query
+          table: tenant_join_requests
+          rls: true
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: status
+            type: enum
+            values: [pending, approved, rejected, cancelled]
+            required: false
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of tenant_join_requests
+        status: implemented
+
+      - name: list_invites
+        description: List pending/historical invites for a tenant
+        http:
+          method: GET
+          path: /tenants/{tenant_id}/invites
+        source:
+          type: query
+          table: tenant_join_requests
+          rls: true
+        roles:
+          - owner
+          - admin
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: status
+            type: enum
+            values: [pending, approved, rejected, cancelled]
+            required: false
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of tenant_join_requests with direction='invite'
+        status: implemented
+
+      - name: list_my_invites
+        description: List all pending invites for the authenticated user
+        http:
+          method: GET
+          path: /me/invites/pending
+        source:
+          type: query
+          table: tenant_join_requests
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of pending invite requests
+        status: implemented
+
+      - name: list_my_join_requests
+        description: List all join requests sent by the authenticated user
+        http:
+          method: GET
+          path: /me/requests
+        source:
+          type: query
+          table: tenant_join_requests
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: status
+            type: enum
+            values: [pending, approved, rejected, cancelled]
+            required: false
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of join requests with direction='join'
+        status: implemented
+
+  notes:
+    name: Note Management
+    capabilities:
+      - name: create_note
+        description: Create a new note in a tenant
+        http:
+          method: POST
+          path: /tenants/{tenant_id}/notes
+        source:
+          type: rpc
+          name: null
+          comment: Direct insert via RLS (no RPC needed)
+        roles:
+          - member
+          - admin
+          - tenant_owner
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: content
+            type: string
+            required: true
+            max_length: null
+        returns: note_id, created_at
+        status: implemented
+
+      - name: get_note
+        description: Get a single note (with RLS-enforced access control)
+        http:
+          method: GET
+          path: /notes/{note_id}
+        source:
+          type: query
+          table: notes
+          rls: true
+        roles:
+          - note_owner
+          - member_with_share
+          - admin/tenant_owner
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+        returns: note object
+        notes:
+          - access controlled by RLS (owner or shared user)
+        status: implemented
+
+      - name: list_my_notes
+        description: List all notes the user owns or has access to
+        http:
+          method: GET
+          path: /notes
+        source:
+          type: query
+          table: notes
+          join_table: note_shares
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+          - name: tenant_id
+            type: uuid
+            required: false
+            description: Filter by tenant
+        returns: list of notes (owned or shared or admin or tenant_owner)
+        status: implemented
+
+      - name: list_tenant_notes
+        description: List all active notes in a tenant (with RLS-enforced access)
+        http:
+          method: GET
+          path: /tenants/{tenant_id}/notes
+        source:
+          type: query
+          table: notes
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: tenant_id
+            type: uuid
+            required: true
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of notes in tenant (rls will filter by access)
+        notes:
+          - RLS filters deleted notes
+        status: implemented
+
+      - name: update_note
+        description: Update the content of a note (owner-only)
+        http:
+          method: PATCH
+          path: /notes/{note_id}
+        source:
+          type: rpc
+          name: null
+          comment: Direct update via RLS (no RPC needed yet)
+        roles:
+          - note_owner
+          - member_with_write_share
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+          - name: content
+            type: string
+            required: true
+        returns: note object
+        status: implemented
+
+      - name: delete_note
+        description: Soft-delete a note (owner-only)
+        http:
+          method: DELETE
+          path: /notes/{note_id}
+        source:
+          type: rpc
+          name: delete_note
+        roles:
+          - note_owner
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+        returns: note_id, result
+        invariants:
+          - only_owner_can_delete
+          - caller_must_be_tenant_member
+          - cannot_delete_already_deleted_note
+          - cannot_delete_note_from_deleted_tenant
+        status: implemented
+
+  shares:
+    name: Note Sharing
+    capabilities:
+      - name: share_note
+        description: Grant read or write access to a note to a tenant member
+        http:
+          method: POST
+          path: /notes/{note_id}/shares
+        source:
+          type: rpc
+          name: change_note_share_permission
+        roles:
+          - note_owner
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+          - name: target_user_id
+            type: uuid
+            required: true
+          - name: permission
+            type: enum
+            values: [read, write]
+            required: true
+        returns: void
+        invariants:
+          - owner_cannot_share_with_self
+          - note_owner_must_be_tenant_member
+          - target_must_be_tenant_member
+          - permission_must_be_valid
+        status: implemented
+
+      - name: revoke_share
+        description: Revoke access to a note from a tenant member
+        http:
+          method: DELETE
+          path: /notes/{note_id}/shares/{user_id}
+        source:
+          type: rpc
+          name: revoke_note_share
+          rls: true
+        roles:
+          - note_owner
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+          - name: user_id
+            type: uuid
+            required: true
+        returns: void
+        invariants:
+          - note_owner_must_be_tenant_member
+        status: implemented
+
+      - name: list_note_shares
+        description: List all users who have access to a note
+        http:
+          method: GET
+          path: /notes/{note_id}/shares
+        source:
+          type: query
+          table: note_shares
+          rls: true
+        roles:
+          - note_owner
+          - admin
+          - tenant_owner
+          - sharee
+        parameters:
+          - name: note_id
+            type: uuid
+            required: true
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of note_shares (user_id, permission, created_at) with total count
+        status: implemented
+
+      - name: list_shared_with_me
+        description: List all notes shared with the authenticated user
+        http:
+          method: GET
+          path: /me/notes/shared
+        source:
+          type: query
+          table: note_shares
+          rls: true
+        roles:
+          - sharee
+        parameters:
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of note_shares note_id (minimal) for now (no join with notes table)
+        status: implemented
+
+  # audit:
+  #   name: Audit & Logs
+  #   capabilities:
+  #     - name: list_audit_logs
+  #       description: List audit logs for a tenant (admin/owner action)
+  #       http:
+  #         method: GET
+  #         path: /tenants/{tenant_id}/audit-logs
+  #       source:
+  #         type: query
+  #         table: audit_logs
+  #         rls: true
+  #       roles:
+  #         - owner
+  #         - admin
+  #       parameters:
+  #         - name: tenant_id
+  #           type: uuid
+  #           required: true
+  #         - name: action
+  #           type: string
+  #           required: false
+  #         - name: actor_id
+  #           type: uuid
+  #           required: false
+  #         - name: limit
+  #           type: integer
+  #           required: false
+  #           default: 50
+  #         - name: offset
+  #           type: integer
+  #           required: false
+  #           default: 0
+  #       returns: list of audit_logs
+  #       status: planned

@@ -3,50 +3,74 @@ alter table note_shares enable row level security;
 
 /*
 Check whether the current user can read a note.
-
-Access is granted if:
-- User belongs to the tenant AND
-- User is:
-  - tenant owner
-  - tenant admin
-  - note owner
-  - or shared user
 */
-create or replace function public.check_note_access(p_note_id uuid)
+create or replace function public.check_note_access(
+    p_tenant_id uuid,
+    p_owner_id uuid,
+    p_note_id uuid
+)
 returns boolean
 language sql
 security definer
 set search_path = public
 stable
 as $$
-    select exists (
-        select 1
-        from notes n
-        join tenants t
-          on t.id = n.tenant_id
-         and t.deleted_at is null -- check if tenant is active
-        join tenant_members tm
-          on tm.tenant_id = n.tenant_id
-         and tm.user_id = auth.uid() -- check if auth.uid is member of the tenant
-        left join note_shares ns
-          on ns.note_id = n.id
-         and ns.user_id = auth.uid() -- check if auth.uid is shared user
-        where n.id = p_note_id
-          and n.deleted_at is null -- check if note is active
-          and (
-              tm.role in ('owner', 'admin') -- user can see if tenant owner or admin
-              or n.owner_id = auth.uid() -- or note owner
-              or ns.user_id is not null -- or shared user
-          )
-    );
+    /*
+        Access rules:
+        1. User MUST be a member of the tenant
+        2. AND one of:
+           - tenant owner/admin
+           - note owner
+           - explicitly shared user
+    */
+    select
+        /*
+            Precondition: must be tenant member
+        */
+        exists (
+            select 1
+            from tenant_members tm
+            where tm.tenant_id = p_tenant_id
+              and tm.user_id = auth.uid()
+        )
+
+        and
+        (
+            /*
+                Note owner (but still must be tenant member)
+            */
+            p_owner_id = select(auth.uid())
+            or
+            /*
+                Tenant owner/admin
+            */
+            exists (
+                select 1
+                from tenant_members tm
+                where tm.tenant_id = p_tenant_id
+                  and tm.user_id = auth.uid()
+                  and tm.role in ('owner', 'admin')
+            )
+            or
+            /*
+                Explicitly shared user
+            */
+            exists (
+                select 1
+                from note_shares ns
+                where ns.note_id = p_note_id
+                  and ns.user_id = auth.uid()
+            )
+        );
 $$;
+
 -- RLS for notes table
 create policy "notes_select"
 on notes
 for select
 using (
     deleted_at is null
-    and check_note_access(id)
+    and check_note_access(tenant_id, owner_id, id)
 );
 
 create policy "notes_insert_member_as_owner"
@@ -115,28 +139,52 @@ with check (
 
 -- RLS for note_shares table
 -- CAUTION: make sure notes RLS is defined before note_shares RLS to avoid circular dependency
-create policy "note_shares_select_owner_or_shared_or_tenant_admin"
-on note_shares
-for select
-using (
-    exists (
+create or replace function user_can_view_note_shares(p_note_id uuid)
+returns boolean
+language plpgsql
+security definer
+stable
+as $$
+declare
+    v_result boolean;
+begin
+    /*
+      Single access check:
+      - Must be tenant member
+      - AND one of:
+        - Note owner
+        - Tenant admin/owner
+        - Sharee of the note
+    */
+
+    select exists (
         select 1
         from notes n
         join tenant_members tm
           on tm.tenant_id = n.tenant_id
          and tm.user_id = auth.uid()
-        where n.id = note_shares.note_id
+        where n.id = p_note_id
           and (
-              /* Case 1: note owner (sharer) */
-              n.owner_id = (select auth.uid())
-
-              /* Case 2: shared user (sharee) */
-              or note_shares.user_id = (select auth.uid())
-
-              /* Case 3: tenant admin / tenant owner */
-              or tm.role in ('admin', 'owner')
+                n.owner_id = auth.uid()
+                or tm.role in ('admin', 'owner')
+                or exists (
+                    select 1
+                    from note_shares ns
+                    where ns.note_id = n.id
+                      and ns.user_id = auth.uid()
+                )
           )
     )
+    into v_result;
+
+    return v_result;
+end;
+$$;
+create policy "note_shares_select"
+on note_shares
+for select
+using (
+    user_can_view_note_shares(note_shares.note_id)
 );
 
 
@@ -164,6 +212,9 @@ using (
     exists (
         select 1
         from notes n
+        join tenant_members tm
+          on tm.tenant_id = n.tenant_id
+         and tm.user_id = (select auth.uid())
         where n.id = note_shares.note_id
           and n.owner_id = (select auth.uid())
           and n.deleted_at is null

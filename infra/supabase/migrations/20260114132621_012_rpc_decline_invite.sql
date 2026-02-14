@@ -28,7 +28,9 @@ declare
 begin
     /* Ensure caller is authenticated */
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     /* Fetch the invite request */
@@ -38,22 +40,30 @@ begin
     where id = p_request_id;
 
     if not found then
-        raise exception 'Invite request not found';
+        raise exception using
+            message = 'Invite request not found',
+            detail = 'DB0301';
     end if;
 
     /* Ensure request is an INVITE request */
     if v_request.direction <> 'invite' then
-        raise exception 'Cannot decline join request';
+        raise exception using
+            message = 'Cannot decline join request',
+            detail = 'DB0303';
     end if;
 
     /* Ensure request is pending */
     if v_request.status <> 'pending' then
-        raise exception 'Only pending invites can be declined';
+        raise exception using
+            message = 'Only pending invites can be declined',
+            detail = 'DB0304';
     end if;
 
     /* Ensure caller is the invited user */
     if v_request.user_id <> (select auth.uid()) then
-        raise exception 'Permission denied: only invited user can decline';
+        raise exception using
+            message = 'Permission denied: only invited user can decline',
+            detail = 'DB0305';
     end if;
 
     /* Decline the invite */

@@ -29,7 +29,9 @@ declare
 begin
     -- Ensure caller is authenticated
     if (select auth.uid()) is null then
-        raise exception 'Unauthenticated';
+        raise exception using
+            message = 'Unauthenticated',
+            detail = 'DB0001';
     end if;
 
     -- Lock the note row for update to avoid race condition
@@ -44,12 +46,16 @@ begin
     for update;
 
     if not found then
-        raise exception 'Note not found, already deleted, or tenant inactive';
+        raise exception using
+            message = 'Note not found, already deleted, or tenant inactive',
+            detail = 'DB0401';
     end if;
 
     -- Check permission: only owner can delete
     if auth.uid() <> v_owner_id then
-        raise exception 'Access denied: only owner can delete this note';
+        raise exception using
+            message = 'Access denied: only owner can delete this note',
+            detail = 'DB0402';
     end if;
 
     -- Soft-delete the note

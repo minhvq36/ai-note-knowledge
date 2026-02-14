@@ -1,2 +1,9 @@
 # AI agents
 .gemini/
+infra/supabase/.temp
+services/backend/scripts_local
+services/backend/.env
+
+**/__pycache__/
+*.py[cod]
+services/backend/app/__pycache__/
