@@ -730,7 +730,7 @@ categories:
             required: false
             default: 0
         returns: list of note_shares note_id (minimal) for now (no join with notes table)
-        status: implementing
+        status: implemented
 
   # audit:
   #   name: Audit & Logs
