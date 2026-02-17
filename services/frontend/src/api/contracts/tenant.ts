@@ -34,6 +34,14 @@ export interface CreateTenantRequest {
 }
 
 /**
+ * Response when listing all tenants user belongs to
+ */
+export interface ListTenantsResponse {
+  readonly tenants: Tenant[];
+  readonly total: number;
+}
+
+/**
  * Payload for changing a member's role
  */
 export interface ChangeMemberRoleRequest {

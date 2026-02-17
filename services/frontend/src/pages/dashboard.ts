@@ -25,7 +25,7 @@ export const DashboardPage = {
     }
 
     /* Step 4: Handle Success and Render HTML */
-    const tenants = response.data || [];
+    const tenants = response.data?.tenants || [];
     
     if (tenants.length === 0) {
       container.innerHTML = `<p class="p-4">No tenants found. Create one to get started!</p>`;
