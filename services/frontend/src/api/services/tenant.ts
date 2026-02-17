@@ -5,9 +5,6 @@ import type { ApiResponse } from '../contracts/base';
 import type { ListTenantsResponse } from '../contracts/tenant';
 
 export const TenantService = {
-  /**
-   * Fetch all tenants for the current user
-   */
   list: async (): Promise<ApiResponse<ListTenantsResponse>> => {
     return await api.get<ListTenantsResponse>('/tenants');
   }

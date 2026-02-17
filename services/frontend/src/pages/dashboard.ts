@@ -1,18 +1,18 @@
 /* src/pages/dashboard/index.ts */
-import { TenantService } from '../api/services/tenant';
+import { MeService } from '../api/services/me';
 import { hasError, resolveErrorMessage } from '../api/contracts/base';
 
 /**
  * Dashboard Component
- * Manages the UI for listing tenants
+ * Manages the UI for listing user's tenants
  */
 export const DashboardPage = {
   async render(container: HTMLElement) {
     /* Step 1: Show loading state */
     container.innerHTML = `<p class="p-4 text-gray-500">Loading your tenants...</p>`;
 
-    /* Step 2: Call the Service */
-    const response = await TenantService.list();
+    /* Step 2: Call the Service - Get user's tenants from /me/tenants */
+    const response = await MeService.listMyTenants();
 
     /* Step 3: Handle Error */
     if (hasError(response)) {
