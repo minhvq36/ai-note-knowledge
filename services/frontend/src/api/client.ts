@@ -1,14 +1,16 @@
 import { hasError, resolveErrorMessage } from './contracts/base';
 import { type ApiResponse } from './contracts/base';
+import { AuthService } from './services/auth';
 
-type TokenProvider = () => string | null;
+type TokenProvider = () => Promise<string | null>;
 
 class ApiClient {
   private baseUrl: string;
   private getToken: TokenProvider;
 
   constructor(getToken: TokenProvider) {
-    this.baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    this.baseUrl =
+      import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
     this.getToken = getToken;
   }
 
@@ -26,7 +28,8 @@ class ApiClient {
       headers.set('Content-Type', 'application/json');
     }
 
-    const token = this.getToken();
+    // ASYNC TOKEN
+    const token = await this.getToken();
     if (token) {
       headers.set('Authorization', `Bearer ${token}`);
     }
@@ -44,7 +47,7 @@ class ApiClient {
       clearTimeout(timeoutId);
 
       if (response.status === 401) {
-        this.handleUnauthorized();
+        await this.handleUnauthorized();
       }
 
       if (response.status === 204) {
@@ -85,16 +88,15 @@ class ApiClient {
         data: null,
         error: {
           code: 'NETWORK_FAILURE',
-          message: err instanceof Error
-            ? err.message
-            : 'Network failure',
+          message:
+            err instanceof Error ? err.message : 'Network failure',
         },
       };
     }
   }
 
-  private handleUnauthorized(): void {
-    localStorage.removeItem('access_token');
+  private async handleUnauthorized(): Promise<void> {
+    await AuthService.logout();
 
     if (window.location.pathname !== '/login') {
       window.location.href = '/login';
@@ -125,5 +127,5 @@ class ApiClient {
 }
 
 export const api = new ApiClient(
-  () => localStorage.getItem('access_token')
+  () => AuthService.getAccessToken()
 );
