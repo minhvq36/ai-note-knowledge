@@ -9,10 +9,19 @@ from app.routers.notes import router as notes_router
 from app.errors.db import DomainError
 from app.errors.http import get_status_code_for_error
 from app.http.response import ApiResponse, ErrorPayload
-
+from fastapi.middleware.cors import CORSMiddleware
+from app.config import settings
 
 app = FastAPI(title="AI Note Knowledge Backend")
 
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/", include_in_schema=False)
 async def redirect_to_docs():
