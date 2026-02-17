@@ -476,6 +476,33 @@ categories:
         returns: list of join requests with direction='join'
         status: implemented
 
+      - name: list_my_tenants
+        description: List all tenants the authenticated user is a member of
+        http:
+          method: GET
+          path: /me/tenants
+        source:
+          type: query
+          table: tenant_members
+          join_table: tenants
+          rls: true
+        roles:
+          - authenticated
+        parameters:
+          - name: limit
+            type: integer
+            required: false
+            default: 20
+          - name: offset
+            type: integer
+            required: false
+            default: 0
+        returns: list of tenants the user is a member of
+        notes:
+          - joins tenant_members with tenants to show user's tenants
+          - RLS ensures only user's own memberships are visible
+        status: implemented
+
   notes:
     name: Note Management
     capabilities:
