@@ -16,5 +16,13 @@ export const AuthService = {
   async getAccessToken(): Promise<string | null> {
     const { data } = await supabase.auth.getSession()
     return data.session?.access_token ?? null
+  },
+
+  /*
+    Check if user is currently authenticated
+   */
+  async isLoggedIn(): Promise<boolean> {
+    const { data } = await supabase.auth.getSession()
+    return !!data.session
   }
 }

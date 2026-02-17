@@ -1,9 +1,9 @@
 /* src/main.ts */
 import './style.css'; 
-/* We don't need setupCounter or the default logos anymore.
-   Keep it lean.
-*/
+
+import { LoginPage } from './pages/login';
 import { DashboardPage } from './pages/dashboard';
+import { AuthService } from './api/services/auth';
 
 /**
  * Global App Mount Point
@@ -16,13 +16,27 @@ if (!app) {
 
 /**
  * Application Bootstrapper
+ * Check authentication status and render appropriate page
  */
 const init = async () => {
-  /* Future: You can check Auth status here 
-     if (!AuthService.isLoggedIn()) { LoginPage.render(app); return; }
-  */
+  const isLoggedIn = await AuthService.isLoggedIn();
   
-  await DashboardPage.render(app);
+  if (isLoggedIn) {
+    /*
+     * User is authenticated - show dashboard
+     */
+    await DashboardPage.render(app);
+  } else {
+    /*
+     * User not authenticated - show login
+     */
+    LoginPage.render(app, () => {
+      /*
+       * On login success, reload app to show dashboard
+       */
+      init();
+    });
+  }
 };
 
 /* Start the app */
