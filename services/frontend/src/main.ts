@@ -1,24 +1,29 @@
-import './style.css'
-import typescriptLogo from './typescript.svg'
-import viteLogo from '/vite.svg'
-import { setupCounter } from './counter.ts'
+/* src/main.ts */
+import './style.css'; 
+/* We don't need setupCounter or the default logos anymore.
+   Keep it lean.
+*/
+import { DashboardPage } from './pages/dashboard';
 
-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://www.typescriptlang.org/" target="_blank">
-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
-    </a>
-    <h1>Vite + TypeScript</h1>
-    <div class="card">
-      <button id="counter" type="button"></button>
-    </div>
-    <p class="read-the-docs">
-      Click on the Vite and TypeScript logos to learn more
-    </p>
-  </div>
-`
+/**
+ * Global App Mount Point
+ */
+const app = document.querySelector<HTMLDivElement>('#app');
 
-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+if (!app) {
+  throw new Error("Critical Error: Root element #app not found in index.html");
+}
+
+/**
+ * Application Bootstrapper
+ */
+const init = async () => {
+  /* Future: You can check Auth status here 
+     if (!AuthService.isLoggedIn()) { LoginPage.render(app); return; }
+  */
+  
+  await DashboardPage.render(app);
+};
+
+/* Start the app */
+document.addEventListener('DOMContentLoaded', init);

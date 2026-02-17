@@ -1,4 +1,5 @@
-import { ApiResponse, hasError, resolveErrorMessage } from './contracts/base';
+import { hasError, resolveErrorMessage } from './contracts/base';
+import { type ApiResponse } from './contracts/base';
 
 type TokenProvider = () => string | null;
 
