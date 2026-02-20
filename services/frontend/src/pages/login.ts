@@ -4,9 +4,11 @@
  */
 
 import { AuthService } from '../api/services/auth';
+import { router } from '../core/router';
 
 export const LoginPage = {
-  async render(container: HTMLElement, onLoginSuccess: () => void) {
+  async render(container: HTMLElement) {
+
     container.innerHTML = `
       <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
         <div class="bg-white rounded-lg shadow-lg p-8 w-full max-w-md">
@@ -50,47 +52,35 @@ export const LoginPage = {
       </div>
     `;
 
-    /*
-      Handle form submission
-     */
     const form = container.querySelector<HTMLFormElement>('#loginForm');
     const errorDiv = container.querySelector<HTMLDivElement>('#error');
-    
+
     form?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      
-      /*
-        Extract form data using FormData API
-       */
+
       const formData = new FormData(form);
       const email = formData.get('email') as string;
       const password = formData.get('password') as string;
-      
-      /*
-        Toggle loading state
-       */
+
       const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
       if (submitBtn) submitBtn.disabled = true;
-      
+
       try {
         const { error } = await AuthService.login(email, password);
-        
+
         if (error) {
           errorDiv!.textContent = error.message || 'Login failed';
           errorDiv!.classList.remove('hidden');
-          if (submitBtn) submitBtn.disabled = false;
+          submitBtn!.disabled = false;
           return;
         }
-        
-        /*
-          Login successful - callback to main
-         */
-        onLoginSuccess();
-        
-      } catch (err) {
+
+        router.navigate('/dashboard');
+
+      } catch {
         errorDiv!.textContent = 'An unexpected error occurred';
         errorDiv!.classList.remove('hidden');
-        if (submitBtn) submitBtn.disabled = false;
+        submitBtn!.disabled = false;
       }
     });
   }

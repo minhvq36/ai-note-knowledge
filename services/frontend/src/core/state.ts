@@ -5,6 +5,7 @@
 
 import type { Tenant } from '../api/contracts/tenant';
 import type { User } from '@supabase/supabase-js';
+import { supabase } from '../lib/supabase';
 
 /* ===============================
    Types
@@ -104,6 +105,18 @@ class GlobalStore {
   /* ===============================
      Utility
   ================================= */
+
+  async restoreSession() {
+    const { data } = await supabase.auth.getSession();
+
+    const user = data.session?.user ?? null;
+
+    this.setUser(user);
+
+    supabase.auth.onAuthStateChange((_event, session) => {
+      this.setUser(session?.user ?? null);
+    });
+  }
 
   clear() {
     this.state = {

@@ -1,81 +1,154 @@
-/* *
+/**
  * Router Engine
- * Manage Page Navigation and Route Guards
+ * SPA hash router with guards for Auth and Tenant context.
  */
 
 import { store } from './state';
 
-/* Define the shape of a Route */
 interface Route {
   path: string;
-  render: (container: HTMLElement) => Promise<void>; // Function to render the page, returns a Promise for async rendering
+  render: (container: HTMLElement) => Promise<void>;
   requiresAuth: boolean;
   requiresTenant: boolean;
 }
 
+interface RouteOptions {
+  auth?: boolean;
+  tenant?: boolean;
+}
+
+const ROUTES = {
+  LOGIN: '/login',
+  DASHBOARD: '/dashboard',
+} as const;
+
 class Router {
+
   private routes: Route[] = [];
   private appContainer: HTMLElement | null = null;
+  private isHandling = false;
 
   constructor() {
-    /* * Lắng nghe sự kiện hashchange (khi URL sau dấu # thay đổi)
-     * Ví dụ: localhost:5173/#/dashboard -> localhost:5173/#/workspace
-     */
-    window.addEventListener('hashchange', () => this.handleRoute());
-  }
-
-  /* Hàm để đăng ký các trang web vào hệ thống */
-  addRoute(path: string, render: any, options = { auth: true, tenant: false }) {
-    this.routes.push({
-      path,
-      render,
-      requiresAuth: options.auth,
-      requiresTenant: options.tenant,
+    window.addEventListener('hashchange', () => {
+      this.handleRoute();
     });
   }
 
-  /* Hàm quan trọng nhất: Xử lý khi URL thay đổi */
+  /**
+   * Start router
+   */
+  start() {
+    this.handleRoute();
+  }
+
+  /**
+   * Register route
+   */
+  addRoute(
+    path: string,
+    render: (container: HTMLElement) => Promise<void>,
+    options: RouteOptions = {}
+  ) {
+
+    const { auth = false, tenant = false } = options;
+
+    this.routes.push({
+      path,
+      render,
+      requiresAuth: auth,
+      requiresTenant: tenant,
+    });
+  }
+
+  /**
+   * Resolve current hash path
+   */
+  private getCurrentPath(): string {
+    const raw = window.location.hash.replace('#', '');
+    if (!raw) return '/';
+    return raw.startsWith('/') ? raw : `/${raw}`;
+  }
+
+  /**
+   * Core router logic
+   */
   async handleRoute() {
-    if (!this.appContainer) {
-      this.appContainer = document.getElementById('app');
-    }
 
-    /* Lấy path hiện tại từ thanh địa chỉ, bỏ dấu # ở đầu */
-    /* Nếu URL là "" thì mặc định là "/" */
-    const path = window.location.hash.slice(1) || '/';
+    if (this.isHandling) return;
+    this.isHandling = true;
 
-    /* 1. Tìm route khớp với URL */
-    const route = this.routes.find(r => r.path === path);
+    try {
 
-    /* Nếu không tìm thấy đường -> cho về Dashboard hoặc 404 */
-    if (!route) {
-      this.navigate('/dashboard');
-      return;
-    }
+      if (!this.appContainer) {
+        this.appContainer = document.getElementById('app');
 
-    /* 2. CHẶN ĐƯỜNG (Route Guards) - Đây là lúc dùng đến Store của bạn */
-    
-    // Kiểm tra Auth (Giả sử bạn có hàm check auth)
-    // if (route.requiresAuth && !store.user) { ... }
+        if (!this.appContainer) {
+          throw new Error('Root #app not found');
+        }
+      }
 
-    // Kiểm tra Tenant: Nếu trang yêu cầu có Tenant mà Store chưa có Id -> Đá ra Dashboard
-    if (route.requiresTenant && !store.activeTenantId) {
-      console.warn("Chưa chọn Tenant! Không được vào Workspace.");
-      this.navigate('/dashboard');
-      return;
-    }
+      const path = this.getCurrentPath();
 
-    /* 3. Nếu mọi thứ OK -> Vẽ giao diện trang đó vào appContainer */
-    if (this.appContainer) {
-      // Xóa nội dung cũ để chuẩn bị vẽ trang mới
-      this.appContainer.innerHTML = ''; 
+      const route = this.routes.find(r => r.path === path);
+
+      /**
+       * Unknown route
+       */
+      if (!route) {
+        this.navigate(ROUTES.DASHBOARD);
+        return;
+      }
+
+      /**
+       * AUTH GUARD
+       */
+      if (route.requiresAuth && !store.user) {
+        this.navigate(ROUTES.LOGIN);
+        return;
+      }
+
+      /**
+       * Prevent logged user visiting login
+       */
+      if (path === ROUTES.LOGIN && store.user) {
+        this.navigate(ROUTES.DASHBOARD);
+        return;
+      }
+
+      /**
+       * TENANT GUARD
+       */
+      if (route.requiresTenant && !store.activeTenantId) {
+        console.warn('Tenant required but not selected');
+        this.navigate(ROUTES.DASHBOARD);
+        return;
+      }
+
+      /**
+       * Render page
+       */
+      this.appContainer.innerHTML = '';
+
       await route.render(this.appContainer);
+
+    } finally {
+      this.isHandling = false;
     }
   }
 
-  /* Hàm tiện ích để chuyển trang bằng code */
+  /**
+   * Navigate programmatically
+   */
   navigate(path: string) {
-    window.location.hash = path;
+
+    const normalized = path.startsWith('/') ? path : `/${path}`;
+
+    if (window.location.hash === `#${normalized}`) {
+      this.handleRoute();
+      return;
+    }
+
+    window.location.hash = normalized;
   }
 }
 
