@@ -14,59 +14,42 @@ import type { Tenant } from '../../api/contracts/tenant';
  */
 function renderWorkspaceUI(tenant: Tenant): string {
   return `
-    <div class="flex h-screen overflow-hidden bg-background">
-      <!-- Sidebar -->
-      <aside class="hidden lg:flex flex-col w-56 border-r border-border bg-sidebar">
-        <!-- Tenant Switcher -->
-        <div class="flex h-14 items-center border-b border-sidebar-border px-3">
-          <button class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent transition-colors w-full outline-none">
-            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-accent-foreground">
+    <div class="workspace-shell">
+      <aside class="workspace-sidebar">
+        <div class="workspace-sidebar__switcher">
+          <button type="button" class="workspace-tenant-btn">
+            <span class="workspace-tenant-btn__avatar">
               ${tenant.name.charAt(0).toUpperCase()}
             </span>
-            <span class="truncate font-medium text-sidebar-foreground">
-              ${tenant.name}
-            </span>
-            <span class="shrink-0 ml-auto text-muted-foreground">⋮</span>
+            <span class="workspace-tenant-btn__name">${tenant.name}</span>
+            <span class="workspace-tenant-btn__menu">⋮</span>
           </button>
         </div>
 
-        <!-- Search -->
-        <div class="px-3 py-3">
-          <button class="flex w-full items-center gap-2 rounded-md bg-sidebar-accent px-2.5 py-1.5 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors">
+        <div class="workspace-sidebar__search">
+          <button type="button" class="workspace-search-btn">
             <span>🔍</span>
             <span>Search notes...</span>
-            <kbd class="ml-auto rounded bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-              /
-            </kbd>
+            <kbd>/</kbd>
           </button>
         </div>
 
-        <!-- Navigation -->
-        <nav class="flex-1 px-2">
-          <ul class="flex flex-col gap-0.5" role="list">
+        <nav class="workspace-sidebar__nav" aria-label="Workspace sections">
+          <ul role="list">
             <li>
-              <button
-                class="section-nav active flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground font-medium"
-                data-section="notes"
-              >
+              <button type="button" class="section-nav section-nav--active" data-section="notes">
                 <span>📝</span>
                 Notes
               </button>
             </li>
             <li>
-              <button
-                class="section-nav flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                data-section="members"
-              >
+              <button type="button" class="section-nav" data-section="members">
                 <span>👥</span>
                 Members
               </button>
             </li>
             <li>
-              <button
-                class="section-nav flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
-                data-section="settings"
-              >
+              <button type="button" class="section-nav" data-section="settings">
                 <span>⚙️</span>
                 Settings
               </button>
@@ -74,75 +57,55 @@ function renderWorkspaceUI(tenant: Tenant): string {
           </ul>
         </nav>
 
-        <!-- New Note Button -->
-        <div class="border-t border-sidebar-border p-3">
-          <button class="flex w-full items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-primary hover:bg-sidebar-accent transition-colors font-medium">
+        <div class="workspace-sidebar__new-note">
+          <button type="button" class="workspace-new-note-btn">
             <span>+</span>
             New note
           </button>
         </div>
 
-        <!-- User Info -->
-        <div class="border-t border-sidebar-border p-3">
-          <div class="flex items-center gap-2.5">
-            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-              ${store.user?.email?.charAt(0).toUpperCase() || 'U'}
-            </div>
-            <div class="flex flex-col min-w-0">
-              <span class="text-xs font-medium text-sidebar-foreground truncate">User</span>
-              <span class="text-[10px] text-muted-foreground truncate">${store.user?.email || 'unknown@example.com'}</span>
+        <div class="workspace-sidebar__user">
+          <div class="workspace-user-chip">
+            <div class="workspace-user-chip__avatar">${store.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
+            <div class="workspace-user-chip__content">
+              <span>User</span>
+              <span>${store.user?.email || 'unknown@example.com'}</span>
             </div>
           </div>
         </div>
       </aside>
 
-      <!-- Main Content -->
-      <div class="flex flex-1 flex-col overflow-hidden">
-        <!-- Top Bar -->
-        <header class="flex h-14 items-center border-b border-border px-6">
-          <div class="flex-1">
-            <h2 class="text-lg font-semibold text-foreground">
-              ${tenant.name}
-            </h2>
-          </div>
-          <button
-            id="backBtn"
-            class="px-3 py-1.5 text-sm rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
-          >
-            ← Back
-          </button>
+      <div class="workspace-main">
+        <header class="workspace-header">
+          <h2>${tenant.name}</h2>
+          <button id="backBtn" type="button" class="workspace-back-btn">← Back</button>
         </header>
 
-        <!-- Content Area -->
-        <main class="flex-1 overflow-auto">
-          <div id="notesSection" class="section-content p-6">
-            <div class="max-w-5xl">
-              <h3 class="text-2xl font-bold text-foreground mb-6">Notes</h3>
-              <div id="notesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="rounded-lg border border-border bg-card p-4 text-center text-muted-foreground">
-                  Loading notes...
-                </div>
+        <main class="workspace-content">
+          <section id="notesSection" class="section-content workspace-section">
+            <div class="workspace-section__inner">
+              <h3>Notes</h3>
+              <div id="notesList" class="workspace-card-grid">
+                <div class="workspace-card workspace-card--muted">Loading notes...</div>
               </div>
             </div>
-          </div>
+          </section>
 
-          <div id="membersSection" class="section-content hidden p-6">
-            <div class="max-w-5xl">
-              <h3 class="text-2xl font-bold text-foreground mb-6">Team Members</h3>
-              <div id="membersList" class="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
-                Loading members...
-              </div>
+          <section id="membersSection" class="section-content workspace-section hidden">
+            <div class="workspace-section__inner">
+              <h3>Team Members</h3>
+              <div id="membersList" class="workspace-card workspace-card--muted">Loading members...</div>
             </div>
-          </div>
+          </section>
 
-          <div id="settingsSection" class="section-content hidden p-6">
-            <div class="max-w-5xl">
-              <h3 class="text-2xl font-bold text-foreground mb-6">Settings</h3>
-              <div class="rounded-lg border border-border bg-card p-6">
-                <p class="text-muted-foreground">Workspace settings coming soon...</p>
+          <section id="settingsSection" class="section-content workspace-section hidden">
+            <div class="workspace-section__inner">
+              <h3>Settings</h3>
+              <div class="workspace-card">
+                <p>Workspace settings coming soon...</p>
               </div>
             </div>
-          </div>
+          </section>
         </main>
       </div>
     </div>
@@ -212,11 +175,9 @@ export const WorkspacePage = {
          * Update active nav button
          */
         sectionBtns.forEach((b) => {
-          b.classList.remove('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
-          b.classList.add('text-sidebar-foreground/70', 'hover:text-sidebar-foreground');
+          b.classList.remove('section-nav--active');
         });
-        btn.classList.add('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
-        btn.classList.remove('text-sidebar-foreground/70', 'hover:text-sidebar-foreground');
+        btn.classList.add('section-nav--active');
 
         /*
          * Update visible section
