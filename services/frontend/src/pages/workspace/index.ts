@@ -1,6 +1,6 @@
 /*
  * Workspace Page
- * Main workspace interface for managing notes within a tenant
+ * Merged v0 sidebar layout + vanilla logic
  */
 
 import { store } from '../../core/state';
@@ -11,101 +11,139 @@ import type { Tenant } from '../../api/contracts/tenant';
 
 /*
  * UI Render Helper
- * Separates rendering logic from page logic
  */
 function renderWorkspaceUI(tenant: Tenant): string {
   return `
-    <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-8 px-4">
-      <div class="max-w-6xl mx-auto">
-        <!-- Header Section -->
-        <div class="flex items-center justify-between mb-8">
-          <div class="flex-1">
-            <h1 class="text-5xl font-bold mb-3">
-              <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">${tenant.name}</span>
-            </h1>
-            <p class="text-slate-400 text-lg">Workspace • ${new Date(tenant.created_at).toLocaleDateString()}</p>
-          </div>
-          <button 
-            id="backBtn"
-            class="ml-4 px-6 py-3 backdrop-blur-xl bg-slate-800/50 border border-slate-700/50 hover:border-indigo-500/50 text-slate-200 hover:text-indigo-300 rounded-lg font-semibold transition-all duration-200 transform hover:scale-105 active:scale-95 flex items-center gap-2"
-          >
-            <span>←</span>
-            <span>Back</span>
+    <div class="flex h-screen overflow-hidden bg-background">
+      <!-- Sidebar -->
+      <aside class="hidden lg:flex flex-col w-56 border-r border-border bg-sidebar">
+        <!-- Tenant Switcher -->
+        <div class="flex h-14 items-center border-b border-sidebar-border px-3">
+          <button class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent transition-colors w-full outline-none">
+            <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-accent-foreground">
+              ${tenant.name.charAt(0).toUpperCase()}
+            </span>
+            <span class="truncate font-medium text-sidebar-foreground">
+              ${tenant.name}
+            </span>
+            <span class="shrink-0 ml-auto text-muted-foreground">⋮</span>
           </button>
         </div>
 
-        <!-- Divider -->
-        <div class="h-px bg-gradient-to-r from-indigo-500/0 via-indigo-500/50 to-indigo-500/0 mb-8"></div>
-
-        <!-- Content Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <!-- Workspace Info Card -->
-          <div class="lg:col-span-2 backdrop-blur-xl rounded-xl p-8 border border-slate-700/50 bg-slate-800/30 hover:border-indigo-500/30 transition-all duration-300">
-            <div class="flex items-center gap-3 mb-6">
-              <div class="w-3 h-3 bg-gradient-to-r from-indigo-400 to-cyan-400 rounded-full"></div>
-              <h2 class="text-2xl font-bold text-slate-100">Workspace Details</h2>
-            </div>
-            
-            <div class="space-y-4">
-              <div class="flex justify-between items-center py-4 border-b border-slate-700/30">
-                <span class="text-slate-400">Workspace ID</span>
-                <code class="px-4 py-2 bg-slate-900/50 rounded text-indigo-300 font-mono text-sm">${tenant.id}</code>
-              </div>
-              
-              <div class="flex justify-between items-center py-4 border-b border-slate-700/30">
-                <span class="text-slate-400">Created</span>
-                <span class="text-slate-200 font-medium">${new Date(tenant.created_at).toLocaleString()}</span>
-              </div>
-
-              <div class="flex justify-between items-center py-4">
-                <span class="text-slate-400">Status</span>
-                <span class="px-3 py-1 bg-green-500/20 border border-green-500/50 rounded-full text-green-300 text-sm font-medium">● Active</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- Quick Actions Card -->
-          <div class="backdrop-blur-xl rounded-xl p-8 border border-slate-700/50 bg-slate-800/30 h-fit">
-            <h3 class="text-lg font-bold text-slate-100 mb-6 flex items-center gap-2">
-              <span class="w-2 h-2 bg-cyan-400 rounded-full"></span>
-              Quick Actions
-            </h3>
-            
-            <div class="space-y-3">
-              <button class="w-full px-4 py-3 bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/50 text-indigo-300 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95">
-                + Create Note
-              </button>
-              <button class="w-full px-4 py-3 bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/50 text-cyan-300 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95">
-                👥 Members
-              </button>
-              <button class="w-full px-4 py-3 bg-slate-700/30 hover:bg-slate-700/50 border border-slate-600/50 text-slate-300 rounded-lg font-medium transition-all duration-200 transform hover:scale-105 active:scale-95">
-                ⚙️ Settings
-              </button>
-            </div>
-          </div>
+        <!-- Search -->
+        <div class="px-3 py-3">
+          <button class="flex w-full items-center gap-2 rounded-md bg-sidebar-accent px-2.5 py-1.5 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors">
+            <span>🔍</span>
+            <span>Search notes...</span>
+            <kbd class="ml-auto rounded bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
+              /
+            </kbd>
+          </button>
         </div>
 
-        <!-- Introduction Section -->
-        <div class="backdrop-blur-xl rounded-xl p-8 border border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-cyan-900/20">
-          <h3 class="text-2xl font-bold text-slate-100 mb-4">Welcome to Your Workspace</h3>
-          <p class="text-slate-400 leading-relaxed mb-4">
-            You're now in the <span class="font-semibold text-indigo-300">${tenant.name}</span> workspace. Here you can:
-          </p>
-          <ul class="space-y-2 text-slate-400">
-            <li class="flex items-center gap-3">
-              <span class="w-2 h-2 bg-indigo-400 rounded-full"></span>
-              <span>Create and manage notes collaboratively</span>
+        <!-- Navigation -->
+        <nav class="flex-1 px-2">
+          <ul class="flex flex-col gap-0.5" role="list">
+            <li>
+              <button
+                class="section-nav active flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground font-medium"
+                data-section="notes"
+              >
+                <span>📝</span>
+                Notes
+              </button>
             </li>
-            <li class="flex items-center gap-3">
-              <span class="w-2 h-2 bg-cyan-400 rounded-full"></span>
-              <span>Share notes with team members</span>
+            <li>
+              <button
+                class="section-nav flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                data-section="members"
+              >
+                <span>👥</span>
+                Members
+              </button>
             </li>
-            <li class="flex items-center gap-3">
-              <span class="w-2 h-2 bg-indigo-400 rounded-full"></span>
-              <span>Organize by workspaces and teams</span>
+            <li>
+              <button
+                class="section-nav flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50"
+                data-section="settings"
+              >
+                <span>⚙️</span>
+                Settings
+              </button>
             </li>
           </ul>
+        </nav>
+
+        <!-- New Note Button -->
+        <div class="border-t border-sidebar-border p-3">
+          <button class="flex w-full items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-primary hover:bg-sidebar-accent transition-colors font-medium">
+            <span>+</span>
+            New note
+          </button>
         </div>
+
+        <!-- User Info -->
+        <div class="border-t border-sidebar-border p-3">
+          <div class="flex items-center gap-2.5">
+            <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
+              ${store.user?.email?.charAt(0).toUpperCase() || 'U'}
+            </div>
+            <div class="flex flex-col min-w-0">
+              <span class="text-xs font-medium text-sidebar-foreground truncate">User</span>
+              <span class="text-[10px] text-muted-foreground truncate">${store.user?.email || 'unknown@example.com'}</span>
+            </div>
+          </div>
+        </div>
+      </aside>
+
+      <!-- Main Content -->
+      <div class="flex flex-1 flex-col overflow-hidden">
+        <!-- Top Bar -->
+        <header class="flex h-14 items-center border-b border-border px-6">
+          <div class="flex-1">
+            <h2 class="text-lg font-semibold text-foreground">
+              ${tenant.name}
+            </h2>
+          </div>
+          <button
+            id="backBtn"
+            class="px-3 py-1.5 text-sm rounded-md hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+          >
+            ← Back
+          </button>
+        </header>
+
+        <!-- Content Area -->
+        <main class="flex-1 overflow-auto">
+          <div id="notesSection" class="section-content p-6">
+            <div class="max-w-5xl">
+              <h3 class="text-2xl font-bold text-foreground mb-6">Notes</h3>
+              <div id="notesList" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="rounded-lg border border-border bg-card p-4 text-center text-muted-foreground">
+                  Loading notes...
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div id="membersSection" class="section-content hidden p-6">
+            <div class="max-w-5xl">
+              <h3 class="text-2xl font-bold text-foreground mb-6">Team Members</h3>
+              <div id="membersList" class="rounded-lg border border-border bg-card p-6 text-center text-muted-foreground">
+                Loading members...
+              </div>
+            </div>
+          </div>
+
+          <div id="settingsSection" class="section-content hidden p-6">
+            <div class="max-w-5xl">
+              <h3 class="text-2xl font-bold text-foreground mb-6">Settings</h3>
+              <div class="rounded-lg border border-border bg-card p-6">
+                <p class="text-muted-foreground">Workspace settings coming soon...</p>
+              </div>
+            </div>
+          </div>
+        </main>
       </div>
     </div>
   `;
@@ -115,7 +153,6 @@ export const WorkspacePage = {
   async render(container: HTMLElement) {
     /*
      * Guard: ensure tenant ID is selected
-     * Router guard checks this, but double-check for safety
      */
     if (!store.activeTenantId) {
       router.navigate('/dashboard');
@@ -124,19 +161,20 @@ export const WorkspacePage = {
 
     /*
      * Check if tenant is cached in store
-     * If not (e.g., page refresh), load from API
      */
     let tenant = store.activeTenant;
 
     if (!tenant) {
-      container.innerHTML = `<p class="p-4 text-gray-500">Loading workspace...</p>`;
+      container.innerHTML = `<div class="flex-center min-h-screen"><p class="text-muted-foreground">Loading workspace...</p></div>`;
 
       const response = await TenantService.getTenant(store.activeTenantId);
 
       if (hasError(response)) {
         container.innerHTML = `
-          <div class="p-4 bg-red-100 text-red-700 rounded m-4">
-            Error: ${resolveErrorMessage(response.error)}
+          <div class="flex-center min-h-screen px-4">
+            <div class="rounded-lg border border-border bg-card shadow-lg p-6 max-w-md text-center">
+              <p class="text-destructive text-sm">${resolveErrorMessage(response.error)}</p>
+            </div>
           </div>
         `;
         return;
@@ -149,9 +187,6 @@ export const WorkspacePage = {
         return;
       }
 
-      /*
-       * Hydrate store with fetched tenant
-       */
       store.setActiveTenant(tenant);
     }
 
@@ -161,13 +196,43 @@ export const WorkspacePage = {
     container.innerHTML = renderWorkspaceUI(tenant);
 
     /*
-     * Back button handler
+     * Setup event listeners
      */
-    container
-      .querySelector<HTMLButtonElement>('#backBtn')
-      ?.addEventListener('click', () => {
-        store.setActiveTenant(null);
-        router.navigate('/dashboard');
+
+    /*
+     * Section navigation
+     */
+    const sectionBtns = container.querySelectorAll('.section-nav');
+    sectionBtns.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const section = btn.getAttribute('data-section');
+        if (!section) return;
+
+        /*
+         * Update active nav button
+         */
+        sectionBtns.forEach((b) => {
+          b.classList.remove('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
+          b.classList.add('text-sidebar-foreground/70', 'hover:text-sidebar-foreground');
+        });
+        btn.classList.add('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
+        btn.classList.remove('text-sidebar-foreground/70', 'hover:text-sidebar-foreground');
+
+        /*
+         * Update visible section
+         */
+        const sections = container.querySelectorAll('.section-content');
+        sections.forEach((s) => s.classList.add('hidden'));
+        container.querySelector(`#${section}Section`)?.classList.remove('hidden');
       });
-  }
+    });
+
+    /*
+     * Back button
+     */
+    container.querySelector('#backBtn')?.addEventListener('click', () => {
+      store.setActiveTenant(null);
+      router.navigate('/dashboard');
+    });
+  },
 };

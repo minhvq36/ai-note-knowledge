@@ -1,6 +1,6 @@
 /*
   Login Page
-  Handles user authentication
+  Merged v0 UI + Vanilla logic
  */
 
 import { AuthService } from '../api/services/auth';
@@ -10,79 +10,83 @@ export const LoginPage = {
   async render(container: HTMLElement) {
 
     container.innerHTML = `
-      <div class="min-h-screen flex items-center justify-center px-4 py-12 bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900">
-        <!-- Animated background elements -->
-        <div class="absolute inset-0 overflow-hidden pointer-events-none">
-          <div class="absolute -top-40 -right-40 w-80 h-80 bg-indigo-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse"></div>
-          <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse animation-delay-2000"></div>
-        </div>
-
-        <!-- Login Card -->
-        <div class="relative w-full max-w-md">
-          <div class="bg-slate-800/50 backdrop-blur-xl rounded-2xl shadow-2xl p-8 border border-slate-700/50">
-            <!-- Header -->
-            <div class="mb-8">
-              <h1 class="text-4xl font-bold bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent mb-2">Welcome</h1>
-              <p class="text-slate-400 text-sm">Sign in to your account to continue</p>
+      <main class="flex min-h-screen items-center justify-center px-4 bg-gradient-to-b from-background via-background to-secondary/20">
+        <div class="w-full max-w-sm">
+          <!-- Header -->
+          <div class="mb-8 flex flex-col items-center gap-3">
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent">
+              <span class="text-lg font-bold text-accent-foreground">A</span>
             </div>
-            
-            <!-- Form -->
-            <form id="loginForm" class="space-y-5">
-              <!-- Email Field -->
-              <div>
-                <label for="email" class="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-                <input 
-                  id="email" 
-                  name="email"
-                  type="email" 
-                  required 
-                  placeholder="you@example.com"
-                  class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200"
-                />
-              </div>
-              
-              <!-- Password Field -->
-              <div>
-                <label for="password" class="block text-sm font-medium text-slate-300 mb-2">Password</label>
-                <input 
-                  id="password" 
-                  name="password"
-                  type="password" 
-                  required 
-                  placeholder="••••••••"
-                  class="w-full px-4 py-3 bg-slate-700/50 border border-slate-600/50 rounded-lg text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/50 transition-all duration-200"
-                />
-              </div>
-              
-              <!-- Submit Button -->
-              <button 
-                type="submit" 
-                class="w-full mt-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold rounded-lg transition-all duration-200 transform hover:scale-[1.02] active:scale-95 shadow-lg hover:shadow-indigo-500/50"
-              >
-                <span class="flex items-center justify-center gap-2">
-                  <span>Sign In</span>
+            <h1 class="text-xl font-semibold tracking-tight text-foreground">
+              NoteStack
+            </h1>
+            <p class="text-sm text-muted-foreground">
+              AI-powered notes for developer teams
+            </p>
+          </div>
+
+          <!-- Login Card -->
+          <div class="rounded-lg border border-border bg-card shadow-lg">
+            <div class="px-6 py-4 border-b border-border">
+              <h2 class="text-base font-semibold text-card-foreground">Sign in</h2>
+              <p class="text-sm text-muted-foreground mt-1">
+                Enter your credentials to access your workspace
+              </p>
+            </div>
+
+            <div class="px-6 py-4">
+              <form id="loginForm" class="flex flex-col gap-4">
+                <!-- Email Field -->
+                <div class="flex flex-col gap-2">
+                  <label for="email" class="text-sm font-medium text-foreground">
+                    Email
+                  </label>
+                  <input 
+                    id="email" 
+                    name="email"
+                    type="email" 
+                    required 
+                    placeholder="you@company.dev"
+                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+                
+                <!-- Password Field -->
+                <div class="flex flex-col gap-2">
+                  <label for="password" class="text-sm font-medium text-foreground">
+                    Password
+                  </label>
+                  <input 
+                    id="password" 
+                    name="password"
+                    type="password" 
+                    required 
+                    placeholder="Enter your password"
+                    class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+
+                <!-- Error Message -->
+                <div id="error" class="hidden p-3 rounded-md bg-destructive/10 text-destructive text-sm border border-destructive/30"></div>
+                
+                <!-- Submit Button -->
+                <button 
+                  type="submit" 
+                  class="mt-2 w-full px-4 py-2 inline-flex items-center justify-center gap-2 rounded-md font-medium transition-colors bg-foreground text-background hover:bg-foreground/90 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <span>Continue</span>
                   <span>→</span>
-                </span>
-              </button>
-
-              <!-- Error Message -->
-              <div id="error" class="hidden p-4 bg-red-900/30 border border-red-700/50 text-red-300 text-sm rounded-lg"></div>
-            </form>
-
-            <!-- Divider -->
-            <div class="mt-8 relative">
-              <div class="absolute inset-0 flex items-center">
-                <div class="w-full border-t border-slate-600/30"></div>
-              </div>
+                </button>
+              </form>
             </div>
           </div>
 
           <!-- Footer -->
-          <p class="text-center mt-6 text-sm text-slate-400">
-            Demo credentials available in your docs
+          <p class="mt-6 text-center text-xs text-muted-foreground">
+            Don't have an account? <button class="text-foreground hover:underline">Request access</button>
           </p>
         </div>
-      </div>
+      </main>
     `;
 
     const form = container.querySelector<HTMLFormElement>('#loginForm');
@@ -98,7 +102,7 @@ export const LoginPage = {
       const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
       if (submitBtn) {
         submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><span>Signing in...</span><span class="animate-spin">⟳</span></span>';
+        submitBtn.innerHTML = '<span>Signing in...</span><span class="animate-spin">⟳</span>';
       }
 
       try {
@@ -109,7 +113,7 @@ export const LoginPage = {
           errorDiv!.classList.remove('hidden');
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><span>Sign In</span><span>→</span></span>';
+            submitBtn.innerHTML = '<span>Continue</span><span>→</span>';
           }
           return;
         }
@@ -121,7 +125,7 @@ export const LoginPage = {
         errorDiv!.classList.remove('hidden');
         if (submitBtn) {
           submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span class="flex items-center justify-center gap-2"><span>Sign In</span><span>→</span></span>';
+          submitBtn.innerHTML = '<span>Continue</span><span>→</span>';
         }
       }
     });

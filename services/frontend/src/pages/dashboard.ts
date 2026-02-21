@@ -3,130 +3,155 @@ import { MeService } from '../api/services/me';
 import { hasError, resolveErrorMessage } from '../api/contracts/base';
 import { store } from '../core/state';
 import { router } from '../core/router';
+import { AuthService } from '../api/services/auth';
 
 /**
  * Dashboard Component
- * Manages the UI for listing user's tenants with tenant selection flow
+ * Merged v0 UI (beautiful grid layout) + Vanilla logic
  */
 export const DashboardPage = {
   async render(container: HTMLElement) {
     /*
      * Auto-redirect if user already has active tenant
-     * Improves UX for already-working users
      */
-    // if (store.activeTenantId) {
-    //   router.navigate('/workspace');
-    //   return;
-    // }
+    if (store.activeTenantId) {
+      router.navigate('/workspace');
+      return;
+    }
 
     /* Step 1: Show loading state */
-    container.innerHTML = `<p class="p-4 text-gray-500">Loading your tenants...</p>`;
+    container.innerHTML = `<div class="flex-center min-h-screen"><p class="text-muted-foreground">Loading workspaces...</p></div>`;
 
-    /* Step 2: Call the Service - Get user's tenants from /me/tenants */
+    /* Step 2: Fetch tenants */
     const response = await MeService.listMyTenants();
 
-    /* Step 3: Handle Error */
+    /* Step 3: Handle error */
     if (hasError(response)) {
       container.innerHTML = `
-        <div class="p-4 bg-red-100 text-red-700 rounded m-4">
-          Error: ${resolveErrorMessage(response.error)}
+        <div class="min-h-screen flex-center px-4">
+          <div class="rounded-lg border border-border bg-card shadow-lg p-6 max-w-md">
+            <h2 class="text-lg font-semibold text-foreground mb-2">Error</h2>
+            <p class="text-sm text-muted-foreground">${resolveErrorMessage(response.error)}</p>
+          </div>
         </div>
       `;
       return;
     }
 
-    /* Step 4: Handle Success and Render HTML */
     const tenants = response.data?.tenants || [];
-    
-    if (tenants.length === 0) {
-      container.innerHTML = `<p class="p-4">No tenants found. Create one to get started!</p>`;
-      return;
-    }
 
+    /* Step 4: Render dashboard */
     container.innerHTML = `
-      <div class="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 py-12 px-4">
-        <div class="max-w-7xl mx-auto">
-          <!-- Header -->
-          <div class="mb-12">
-            <h1 class="text-4xl md:text-5xl font-bold mb-3">
-              <span class="bg-gradient-to-r from-indigo-400 to-cyan-400 bg-clip-text text-transparent">Your Workspaces</span>
-            </h1>
-            <p class="text-slate-400 text-lg">Select a workspace to get started or create a new one</p>
+      <div class="min-h-screen bg-background">
+        <!-- Header -->
+        <header class="sticky top-0 z-40 border-b border-border bg-background/80 backdrop-blur-sm">
+          <div class="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
+            <div class="flex items-center gap-2.5">
+              <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-accent">
+                <span class="text-sm font-bold text-accent-foreground">A</span>
+              </div>
+              <span class="font-semibold text-foreground">NoteStack</span>
+            </div>
+            <button
+              id="logoutBtn"
+              class="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              Sign out
+            </button>
+          </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="mx-auto max-w-5xl px-6 py-10">
+          <!-- Heading -->
+          <div class="mb-8 flex items-center justify-between">
+            <div>
+              <h1 class="text-3xl font-bold tracking-tight text-foreground">
+                Workspaces
+              </h1>
+              <p class="mt-2 text-sm text-muted-foreground">
+                Select a workspace or create a new one to get started
+              </p>
+            </div>
+            <button
+              id="createBtn"
+              class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 text-sm font-medium bg-foreground text-background hover:bg-foreground/90 transition-colors"
+            >
+              <span>+</span>
+              <span>New workspace</span>
+            </button>
           </div>
 
           <!-- Tenants Grid -->
-          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            ${tenants.map(t => {
-              const isActive = t.id === store.activeTenantId;
-              const borderColor = isActive ? 'border-indigo-500/50 shadow-lg shadow-indigo-500/20' : 'border-slate-700/50 hover:border-slate-600/50';
-              const bgColor = isActive ? 'bg-indigo-900/20' : 'bg-slate-800/30';
-              
-              return `
-                <div 
-                  class="group cursor-pointer transform transition-all duration-300 hover:scale-105"
-                  data-tenant-id="${t.id}"
-                >
-                  <div class="backdrop-blur-xl rounded-xl p-6 border ${borderColor} ${bgColor} h-full hover:shadow-xl transition-all duration-300 relative overflow-hidden">
-                    <!-- Background gradient on hover -->
-                    <div class="absolute inset-0 bg-gradient-to-br from-indigo-600/0 to-cyan-600/0 group-hover:from-indigo-600/10 group-hover:to-cyan-600/10 transition-all duration-300"></div>
-                    
-                    <!-- Content -->
-                    <div class="relative z-10">
-                      <div class="flex items-start justify-between mb-4">
-                        <div>
-                          <h3 class="text-xl font-bold text-slate-100 group-hover:text-indigo-300 transition-colors">${t.name}</h3>
-                        </div>
-                        ${isActive ? '<div class="px-3 py-1 bg-indigo-500/20 border border-indigo-500/50 rounded-full text-xs font-semibold text-indigo-300">● Active</div>' : ''}
-                      </div>
-                      
-                      <div class="space-y-3">
-                        <div class="flex items-center gap-2 text-sm text-slate-400">
-                          <span class="w-1 h-1 rounded-full bg-cyan-400"></span>
-                          <span>Created ${new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
-                      </div>
-
-                      <!-- Arrow Indicator -->
-                      <div class="mt-4 inline-block px-3 py-2 bg-indigo-500/10 border border-indigo-500/30 rounded-lg group-hover:bg-indigo-500/20 transition-all duration-300">
-                        <span class="text-sm font-medium text-indigo-300 group-hover:translate-x-1 inline-block transition-transform">Open →</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              `;
-            }).join('')}
-          </div>
-
-          <!-- Empty State -->
-          ${tenants.length === 0 ? `
-            <div class="mt-12 text-center">
-              <div class="inline-block p-12 bg-slate-800/30 border border-slate-700/50 rounded-xl">
-                <p class="text-slate-400 text-lg mb-4">No workspaces yet</p>
-                <button class="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white rounded-lg font-semibold transition-all transform hover:scale-105">
+          ${
+            tenants.length === 0
+              ? `
+            <div class="flex-center py-20">
+              <div class="text-center max-w-md">
+                <p class="text-muted-foreground mb-4">No workspaces yet</p>
+                <button id="createBtn2" class="inline-flex items-center justify-center gap-2 rounded-md px-4 py-2 font-medium bg-foreground text-background hover:bg-foreground/90">
                   Create Your First Workspace
                 </button>
               </div>
             </div>
-          ` : ''}
-        </div>
+          `
+              : `
+            <div class="grid grid-responsive">
+              ${tenants
+                .map(
+                  (t) => `
+                <div 
+                  class="group cursor-pointer rounded-lg border border-border bg-card hover:border-accent/50 hover:shadow-md transition-all p-6"
+                  data-tenant-id="${t.id}"
+                >
+                  <!-- Header -->
+                  <div class="flex items-start justify-between mb-4">
+                    <div class="flex items-center gap-3">
+                      <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/20 text-sm font-bold text-accent">
+                        ${t.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <h3 class="font-semibold text-foreground group-hover:text-accent transition-colors">
+                          ${t.name}
+                        </h3>
+                        <p class="text-xs text-muted-foreground">${t.id}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- Meta Info -->
+                  <div class="flex items-center justify-between pt-4 border-t border-border/50">
+                    <span class="text-xs text-muted-foreground">
+                      Created ${new Date(t.created_at).toLocaleDateString('en-US', {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric',
+                      })}
+                    </span>
+                    <span class="text-accent group-hover:translate-x-1 transition-transform">→</span>
+                  </div>
+                </div>
+              `
+                )
+                .join('')}
+            </div>
+          `
+          }
+        </main>
       </div>
     `;
 
     /*
-     * Helper function for tenant selection
+     * Event delegation for tenant selection
      */
     const selectTenant = (tenantId: string) => {
-      const selectedTenant = tenants.find(t => t.id === tenantId);
+      const selectedTenant = tenants.find((t) => t.id === tenantId);
       if (!selectedTenant) return;
 
       store.setActiveTenant(selectedTenant);
       router.navigate('/workspace');
     };
 
-    /*
-     * Step 5: Event delegation for tenant card clicks
-     * Single listener scales better than multiple listeners per card
-     */
     container.addEventListener('click', (e) => {
       const card = (e.target as HTMLElement).closest('[data-tenant-id]');
       if (!card) return;
@@ -136,5 +161,14 @@ export const DashboardPage = {
         selectTenant(tenantId);
       }
     });
-  }
+
+    /*
+     * Logout button
+     */
+    container.querySelector('#logoutBtn')?.addEventListener('click', async () => {
+      await AuthService.logout();
+      store.clear();
+      router.navigate('/login');
+    });
+  },
 };
