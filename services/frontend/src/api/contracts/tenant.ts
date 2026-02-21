@@ -41,6 +41,12 @@ export interface ListTenantsResponse {
   readonly total: number;
 }
 
+/*
+ * Response when fetching single tenant details
+ * Mirrors backend TenantDetailsResponse (single tenant object)
+ */
+export type TenantDetailsResponse = Tenant;
+
 /**
  * Payload for changing a member's role
  */

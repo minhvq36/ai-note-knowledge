@@ -10,6 +10,15 @@ import { router } from '../core/router';
  */
 export const DashboardPage = {
   async render(container: HTMLElement) {
+    /*
+     * Auto-redirect if user already has active tenant
+     * Improves UX for already-working users
+     */
+    if (store.activeTenantId) {
+      router.navigate('/workspace');
+      return;
+    }
+
     /* Step 1: Show loading state */
     container.innerHTML = `<p class="p-4 text-gray-500">Loading your tenants...</p>`;
 
