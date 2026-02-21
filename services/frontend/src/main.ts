@@ -5,15 +5,19 @@ import { router } from './core/router';
 import { store } from './core/state';
 import { LoginPage } from './pages/login';
 import { DashboardPage } from './pages/dashboard';
-import { AuthService } from './api/services/auth';
+import { WorkspacePage } from './pages/workspace/index';
 
 async function bootstrap() {
 
   await store.restoreSession();
 
+  router.addRoute('/', DashboardPage.render, { auth:true });
+
   router.addRoute('/login', LoginPage.render, { auth:false });
 
   router.addRoute('/dashboard', DashboardPage.render, { auth:true });
+
+  router.addRoute('/workspace', WorkspacePage.render, { auth:true, tenant:true });
 
   await router.handleRoute();
 }
