@@ -1,110 +1,136 @@
 /*
  * Login Page
- * v0-inspired layout with vanilla logic
+ * Clean modern login form with email/password fields
+ */
+/*
+ * Login Page
+ * Clean modern login form with email/password fields
  */
 
 import { AuthService } from '../api/services/auth';
 import { router } from '../core/router';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
 
-export const LoginPage = {
+export const LoginPage = { 
   async render(container: HTMLElement) {
-    container.innerHTML = `
-      <main class="login-shell">
-        <section class="login-panel">
-          <header class="login-panel__header">
-            <div class="login-brand">
-              <div class="login-brand__logo">A</div>
-              <h1>NoteStack</h1>
-            </div>
-            <p>AI-powered notes for developer teams</p>
-          </header>
+    /*
+     * Main page container
+     */
+    container.innerHTML = ''; 
+    container.className = 'page-login';
 
-          <article class="login-card">
-            <div class="login-card__head">
-              <h2>Sign in</h2>
-              <p>Enter your credentials to access your workspace.</p>
-            </div>
+    /*
+     * Login card
+     */
+    const card = document.createElement('article');
+    card.className = 'login-card';
 
-            <form id="loginForm" class="login-form">
-              <div class="login-form__field">
-                <label for="email">Email</label>
-                <input
-                  id="email"
-                  name="email"
-                  type="email"
-                  required
-                  placeholder="you@company.dev"
-                />
-              </div>
+    /*
+     * Logo section
+     */
+    const logo = document.createElement('div');
+    logo.className = 'login-card__logo';
 
-              <div class="login-form__field">
-                <label for="password">Password</label>
-                <input
-                  id="password"
-                  name="password"
-                  type="password"
-                  required
-                  placeholder="Enter your password"
-                />
-              </div>
+    const logoIcon = document.createElement('span');
+    logoIcon.className = 'login-card__logo-icon';
+    logoIcon.textContent = 'W';
+    logo.appendChild(logoIcon);
 
-              <div id="error" class="hidden login-error-box"></div>
+    const logoText = document.createElement('span');
+    logoText.className = 'login-card__logo-text';
+    logoText.textContent = 'Workspace';
+    logo.appendChild(logoText);
 
-              <button type="submit" class="login-submit-btn">
-                <span>Continue</span>
-                <span>→</span>
-              </button>
-            </form>
-          </article>
+    card.appendChild(logo);
 
-          <footer class="login-panel__footer">
-            <p>
-              Don't have an account?
-              <button type="button" class="login-link-btn">Request access</button>
-            </p>
-          </footer>
-        </section>
-      </main>
-    `;
+    /*
+     * Heading
+     */
+    const h1 = document.createElement('h2');
+    h1.textContent = 'Welcome back';
+    card.appendChild(h1);
 
-    const form = container.querySelector<HTMLFormElement>('#loginForm');
-    const errorDiv = container.querySelector<HTMLDivElement>('#error');
+    const sub = document.createElement('p');
+    sub.className = 'login-card__sub';
+    sub.textContent = 'Sign in to your account to continue';
+    card.appendChild(sub);
 
-    form?.addEventListener('submit', async (e) => {
+    /*
+     * Form
+     */
+    const form = document.createElement('form'); 
+    form.className = 'login-form';
+    form.addEventListener('submit', (e) => e.preventDefault());
+
+    /*
+     * Error display
+     */
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'formError';
+    form.appendChild(errorDiv);
+
+    /*
+     * Email input
+     */
+    const emailInput = Input({ 
+      type: 'email',
+      label: 'Email',
+      placeholder: 'you@example.com',
+      required: true,
+      id: 'login-email',
+    });
+    form.appendChild(emailInput);
+
+    /*
+     * Password input
+     */
+    const passwordInput = Input({ 
+      type: 'password',
+      label: 'Password',
+      placeholder: 'Enter your password',
+      required: true,
+      id: 'login-password',
+    });
+    form.appendChild(passwordInput);
+
+    /*
+     * Submit button
+     */
+    const submitBtn = Button('Sign in', { variant: 'primary' });
+    submitBtn.addEventListener('click', async (e) => {
       e.preventDefault();
+      errorDiv.textContent = '';
+      errorDiv.className = '';
 
-      const formData = new FormData(form);
-      const email = formData.get('email') as string;
-      const password = formData.get('password') as string;
-
-      const submitBtn = form.querySelector<HTMLButtonElement>('button[type="submit"]');
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<span>Signing in...</span><span class="animate-spin">⟳</span>';
-      }
+      const emailVal = (form.querySelector<HTMLInputElement>('#login-email'))?.value || '';
+      const passwordVal = (form.querySelector<HTMLInputElement>('#login-password'))?.value || '';
 
       try {
-        const { error } = await AuthService.login(email, password);
-
+        const { error } = await AuthService.login(emailVal, passwordVal); 
         if (error) {
-          errorDiv!.textContent = error.message || 'Login failed';
-          errorDiv!.classList.remove('hidden');
-          if (submitBtn) {
-            submitBtn.disabled = false;
-            submitBtn.innerHTML = '<span>Continue</span><span>→</span>';
-          }
+          errorDiv.className = 'alert alert-error';
+          errorDiv.textContent = error.message || 'Login failed';
           return;
         }
-
         router.navigate('/dashboard');
-      } catch {
-        errorDiv!.textContent = 'An unexpected error occurred';
-        errorDiv!.classList.remove('hidden');
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = '<span>Continue</span><span>→</span>';
-        }
+      } catch (err: any) {
+        errorDiv.className = 'alert alert-error';
+        errorDiv.textContent = err?.message || 'Login failed';
       }
     });
+    form.appendChild(submitBtn);
+
+    card.appendChild(form);
+
+    /*
+     * Footer link
+     */
+    const footer = document.createElement('footer');
+    footer.className = 'login-card__footer';
+    footer.innerHTML = `Don't have an account? <a href="#">Sign up</a>`;
+    card.appendChild(footer);
+
+    container.appendChild(card);
   },
 };

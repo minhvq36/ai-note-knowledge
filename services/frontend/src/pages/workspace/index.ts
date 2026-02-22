@@ -1,116 +1,17 @@
 /*
  * Workspace Page
- * Merged v0 sidebar layout + vanilla logic
+ * Sidebar layout with sections and content area
  */
 
 import { store } from '../../core/state';
 import { router } from '../../core/router';
 import { TenantService } from '../../api/services/tenant';
+import { AuthService } from '../../api/services/auth';
 import { hasError, resolveErrorMessage } from '../../api/contracts/base';
+import { createSidebar } from '../../components/layout/sidebar';
+import { createHeader } from '../../components/layout/header';
+import { Button } from '../../components/ui/button';
 import type { Tenant } from '../../api/contracts/tenant';
-
-/*
- * UI Render Helper
- */
-function renderWorkspaceUI(tenant: Tenant): string {
-  return `
-    <div class="workspace-shell">
-      <aside class="workspace-sidebar">
-        <div class="workspace-sidebar__switcher">
-          <button type="button" class="workspace-tenant-btn">
-            <span class="workspace-tenant-btn__avatar">
-              ${tenant.name.charAt(0).toUpperCase()}
-            </span>
-            <span class="workspace-tenant-btn__name">${tenant.name}</span>
-            <span class="workspace-tenant-btn__menu">⋮</span>
-          </button>
-        </div>
-
-        <div class="workspace-sidebar__search">
-          <button type="button" class="workspace-search-btn">
-            <span>🔍</span>
-            <span>Search notes...</span>
-            <kbd>/</kbd>
-          </button>
-        </div>
-
-        <nav class="workspace-sidebar__nav" aria-label="Workspace sections">
-          <ul role="list">
-            <li>
-              <button type="button" class="section-nav section-nav--active" data-section="notes">
-                <span>📝</span>
-                Notes
-              </button>
-            </li>
-            <li>
-              <button type="button" class="section-nav" data-section="members">
-                <span>👥</span>
-                Members
-              </button>
-            </li>
-            <li>
-              <button type="button" class="section-nav" data-section="settings">
-                <span>⚙️</span>
-                Settings
-              </button>
-            </li>
-          </ul>
-        </nav>
-
-        <div class="workspace-sidebar__new-note">
-          <button type="button" class="workspace-new-note-btn">
-            <span>+</span>
-            New note
-          </button>
-        </div>
-
-        <div class="workspace-sidebar__user">
-          <div class="workspace-user-chip">
-            <div class="workspace-user-chip__avatar">${store.user?.email?.charAt(0).toUpperCase() || 'U'}</div>
-            <div class="workspace-user-chip__content">
-              <span>User</span>
-              <span>${store.user?.email || 'unknown@example.com'}</span>
-            </div>
-          </div>
-        </div>
-      </aside>
-
-      <div class="workspace-main">
-        <header class="workspace-header">
-          <h2>${tenant.name}</h2>
-          <button id="backBtn" type="button" class="workspace-back-btn">← Back</button>
-        </header>
-
-        <main class="workspace-content">
-          <section id="notesSection" class="section-content workspace-section">
-            <div class="workspace-section__inner">
-              <h3>Notes</h3>
-              <div id="notesList" class="workspace-card-grid">
-                <div class="workspace-card workspace-card--muted">Loading notes...</div>
-              </div>
-            </div>
-          </section>
-
-          <section id="membersSection" class="section-content workspace-section hidden">
-            <div class="workspace-section__inner">
-              <h3>Team Members</h3>
-              <div id="membersList" class="workspace-card workspace-card--muted">Loading members...</div>
-            </div>
-          </section>
-
-          <section id="settingsSection" class="section-content workspace-section hidden">
-            <div class="workspace-section__inner">
-              <h3>Settings</h3>
-              <div class="workspace-card">
-                <p>Workspace settings coming soon...</p>
-              </div>
-            </div>
-          </section>
-        </main>
-      </div>
-    </div>
-  `;
-}
 
 export const WorkspacePage = {
   async render(container: HTMLElement) {
@@ -123,23 +24,32 @@ export const WorkspacePage = {
     }
 
     /*
-     * Check if tenant is cached in store
+     * Check if tenant is cached
      */
     let tenant = store.activeTenant;
 
     if (!tenant) {
-      container.innerHTML = `<div class="flex-center min-h-screen"><p class="text-muted-foreground">Loading workspace...</p></div>`;
+      container.innerHTML = '';
+      const loading = document.createElement('div');
+      loading.className = 'dashboard-shell dashboard-shell--center';
+      loading.innerHTML = '<p class="dashboard-muted-text">Loading workspace...</p>';
+      container.appendChild(loading);
 
       const response = await TenantService.getTenant(store.activeTenantId);
 
       if (hasError(response)) {
-        container.innerHTML = `
-          <div class="flex-center min-h-screen px-4">
-            <div class="rounded-lg border border-border bg-card shadow-lg p-6 max-w-md text-center">
-              <p class="text-destructive text-sm">${resolveErrorMessage(response.error)}</p>
-            </div>
-          </div>
-        `;
+        container.innerHTML = '';
+        const errorCard = document.createElement('div');
+        errorCard.className = 'dashboard-shell dashboard-shell--center dashboard-shell--padded';
+        const card = document.createElement('div');
+        card.className = 'card dashboard-error-card';
+        const p = document.createElement('p');
+        p.textContent = resolveErrorMessage(response.error);
+        p.style.color = 'var(--red)';
+        p.style.fontSize = '14px';
+        card.appendChild(p);
+        errorCard.appendChild(card);
+        container.appendChild(errorCard);
         return;
       }
 
@@ -154,46 +64,129 @@ export const WorkspacePage = {
     }
 
     /*
-     * Render workspace UI
+     * Page setup
      */
-    container.innerHTML = renderWorkspaceUI(tenant);
+    container.innerHTML = '';
+    container.className = 'page-workspace';
 
     /*
-     * Setup event listeners
+     * Sidebar
      */
+    const sidebar = createSidebar({
+      brand: tenant.name,
+      brandIcon: tenant.name.charAt(0).toUpperCase(),
+      sections: [
+        {
+          items: [
+            {
+              label: 'Notes',
+              icon: 'file',
+              active: true,
+              onClick: () => {
+                document.querySelectorAll('.section-nav').forEach((el) => el.classList.remove('sidebar-item--active'));
+                (event?.target as HTMLElement)?.classList.add('sidebar-item--active');
+                document.querySelectorAll('section').forEach((s) => s.classList.add('hidden'));
+                document.querySelector('#notesSection')?.classList.remove('hidden');
+              },
+            },
+            {
+              label: 'Members',
+              icon: 'users',
+              onClick: () => {
+                document.querySelectorAll('.section-nav').forEach((el) => el.classList.remove('sidebar-item--active'));
+                (event?.target as HTMLElement)?.classList.add('sidebar-item--active');
+                document.querySelectorAll('section').forEach((s) => s.classList.add('hidden'));
+                document.querySelector('#membersSection')?.classList.remove('hidden');
+              },
+            },
+            {
+              label: 'Settings',
+              icon: 'settings',
+              onClick: () => {
+                document.querySelectorAll('.section-nav').forEach((el) => el.classList.remove('sidebar-item--active'));
+                (event?.target as HTMLElement)?.classList.add('sidebar-item--active');
+                document.querySelectorAll('section').forEach((s) => s.classList.add('hidden'));
+                document.querySelector('#settingsSection')?.classList.remove('hidden');
+              },
+            },
+          ],
+        },
+      ],
+      footer: Button('← Back', {
+        variant: 'ghost',
+        size: 'sm',
+        onClick: () => {
+          store.setActiveTenant(null);
+          router.navigate('/dashboard');
+        },
+      }),
+    });
+    container.appendChild(sidebar);
 
     /*
-     * Section navigation
+     * Main area
      */
-    const sectionBtns = container.querySelectorAll('.section-nav');
-    sectionBtns.forEach((btn) => {
-      btn.addEventListener('click', () => {
-        const section = btn.getAttribute('data-section');
-        if (!section) return;
+    const main = document.createElement('div');
+    main.className = 'workspace-main';
 
-        /*
-         * Update active nav button
-         */
-        sectionBtns.forEach((b) => {
-          b.classList.remove('section-nav--active');
-        });
-        btn.classList.add('section-nav--active');
-
-        /*
-         * Update visible section
-         */
-        const sections = container.querySelectorAll('.section-content');
-        sections.forEach((s) => s.classList.add('hidden'));
-        container.querySelector(`#${section}Section`)?.classList.remove('hidden');
-      });
+    const signOutBtn = Button('Sign out', {
+      variant: 'ghost',
+      size: 'sm',
+      onClick: async () => {
+        await AuthService.logout();
+        store.clear();
+        router.navigate('/login');
+      },
     });
 
-    /*
-     * Back button
-     */
-    container.querySelector('#backBtn')?.addEventListener('click', () => {
-      store.setActiveTenant(null);
-      router.navigate('/dashboard');
+    const header = createHeader({
+      title: `${tenant.name} / Notes`,
+      actions: [signOutBtn],
     });
+    main.appendChild(header);
+
+    /*
+     * Content
+     */
+    const content = document.createElement('div');
+    content.className = 'workspace-content';
+
+    const notesSection = document.createElement('section');
+    notesSection.id = 'notesSection';
+    const notesHeading = document.createElement('h2');
+    notesHeading.textContent = 'Notes';
+    const notesList = document.createElement('div');
+    notesList.className = 'notes-list';
+    notesList.innerHTML = '<p style="text-align:center;color:var(--text-secondary)">No notes yet</p>';
+    notesSection.appendChild(notesHeading);
+    notesSection.appendChild(notesList);
+    content.appendChild(notesSection);
+
+    const membersSection = document.createElement('section');
+    membersSection.id = 'membersSection';
+    membersSection.className = 'hidden';
+    const membersHeading = document.createElement('h2');
+    membersHeading.textContent = 'Members';
+    const membersList = document.createElement('div');
+    membersList.className = 'members-list';
+    membersList.innerHTML = '<p style="text-align:center;color:var(--text-secondary)">Loading members...</p>';
+    membersSection.appendChild(membersHeading);
+    membersSection.appendChild(membersList);
+    content.appendChild(membersSection);
+
+    const settingsSection = document.createElement('section');
+    settingsSection.id = 'settingsSection';
+    settingsSection.className = 'hidden';
+    const settingsHeading = document.createElement('h2');
+    settingsHeading.textContent = 'Settings';
+    const settingsContent = document.createElement('p');
+    settingsContent.style.color = 'var(--text-secondary)';
+    settingsContent.textContent = 'Workspace settings coming soon...';
+    settingsSection.appendChild(settingsHeading);
+    settingsSection.appendChild(settingsContent);
+    content.appendChild(settingsSection);
+
+    main.appendChild(content);
+    container.appendChild(main);
   },
 };

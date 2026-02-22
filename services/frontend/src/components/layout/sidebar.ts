@@ -1,128 +1,117 @@
 /*
- * Workspace Sidebar Component
- * Navigation and tenant context
+ * Sidebar Component
+ * Navigation sidebar with sections and active states
  */
 
-export interface WorkspaceSidebarOptions {
-  tenantName: string;
-  userEmail?: string;
-  onSectionChange: (section: string) => void;
+export interface SidebarItem {
+  label: string;
+  icon: string;
+  active?: boolean;
+  onClick?: () => void;
 }
 
-export function createWorkspaceSidebar(
-  options: WorkspaceSidebarOptions
-): HTMLElement {
-  const { tenantName, userEmail = 'unknown@example.com', onSectionChange } = options;
+export interface SidebarSection {
+  label?: string;
+  items: SidebarItem[];
+}
 
-  const sidebar = document.createElement('aside');
-  sidebar.className = [
-    'hidden lg:flex flex-col w-56 border-r border-border',
-    'bg-sidebar',
-  ]
-    .join(' ');
+export interface SidebarOptions {
+  brand: string;
+  brandIcon?: string;
+  sections: SidebarSection[];
+  footer?: HTMLElement;
+}
 
-  sidebar.innerHTML = `
-    <!-- Tenant Switcher -->
-    <div class="flex h-14 items-center border-b border-sidebar-border px-3">
-      <button class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-sidebar-accent transition-colors w-full outline-none">
-        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md bg-accent text-[10px] font-bold text-accent-foreground">
-          ${tenantName.charAt(0).toUpperCase()}
-        </span>
-        <span class="truncate font-medium text-sidebar-foreground">
-          ${tenantName}
-        </span>
-        <span class="shrink-0 ml-auto text-muted-foreground">⋮</span>
-      </button>
-    </div>
+function createSvgIcon(name: string): string {
+  const icons: Record<string, string> = {
+    home: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>',
+    file: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>',
+    users: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>',
+    settings: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+    search: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>',
+    grid: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>',
+    logout: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>',
+  };
+  return icons[name] || icons.file;
+}
 
-    <!-- Search -->
-    <div class="px-3 py-3">
-      <button class="flex w-full items-center gap-2 rounded-md bg-sidebar-accent px-2.5 py-1.5 text-sm text-muted-foreground hover:text-sidebar-foreground transition-colors">
-        <span>🔍</span>
-        <span>Search notes...</span>
-        <kbd class="ml-auto rounded bg-background px-1.5 py-0.5 text-[10px] font-mono text-muted-foreground">
-          /
-        </kbd>
-      </button>
-    </div>
+export function createSidebar(options: SidebarOptions): HTMLElement {
+  const { brand, brandIcon, sections, footer } = options;
 
-    <!-- Navigation -->
-    <nav class="flex-1 px-2">
-      <ul class="flex flex-col gap-0.5" role="list">
-        <li>
-          <button class="nav-section active flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors bg-sidebar-accent text-sidebar-accent-foreground font-medium" data-section="notes">
-            <span>📝</span>
-            Notes
-          </button>
-        </li>
-        <li>
-          <button class="nav-section flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50" data-section="shared">
-            <span>🔗</span>
-            Shared with me
-          </button>
-        </li>
-        <li>
-          <button class="nav-section flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50" data-section="members">
-            <span>👥</span>
-            Members
-          </button>
-        </li>
-        <li>
-          <button class="nav-section flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/50" data-section="settings">
-            <span>⚙️</span>
-            Settings
-          </button>
-        </li>
-      </ul>
-    </nav>
-
-    <!-- New Note Button -->
-    <div class="border-t border-sidebar-border p-3">
-      <button class="flex w-full items-center justify-center gap-2 rounded-md px-2.5 py-1.5 text-sm text-sidebar-primary hover:bg-sidebar-accent transition-colors font-medium">
-        <span>+</span>
-        New note
-      </button>
-    </div>
-
-    <!-- User Info -->
-    <div class="border-t border-sidebar-border p-3">
-      <div class="flex items-center gap-2.5">
-        <div class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-semibold text-accent-foreground">
-          ${userEmail.charAt(0).toUpperCase()}
-        </div>
-        <div class="flex flex-col min-w-0">
-          <span class="text-xs font-medium text-sidebar-foreground truncate">User</span>
-          <span class="text-[10px] text-muted-foreground truncate">${userEmail}</span>
-        </div>
-      </div>
-    </div>
-  `;
+  const sidebar = document.createElement("nav");
+  sidebar.className = "layout-sidebar";
+  sidebar.setAttribute("aria-label", "Main navigation");
 
   /*
-   * Attach event listeners to nav buttons
+   * Brand
    */
-  const navButtons = sidebar.querySelectorAll('.nav-section');
-  navButtons.forEach((btn) => {
-    btn.addEventListener('click', () => {
-      /*
-       * Update active state
-       */
-      navButtons.forEach((b) => {
-        b.classList.remove('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
-        b.classList.add('text-sidebar-foreground/70', 'hover:text-sidebar-foreground', 'hover:bg-sidebar-accent/50');
-      });
-      btn.classList.add('bg-sidebar-accent', 'text-sidebar-accent-foreground', 'font-medium');
-      btn.classList.remove('text-sidebar-foreground/70', 'hover:text-sidebar-foreground', 'hover:bg-sidebar-accent/50');
+  const brandEl = document.createElement("div");
+  brandEl.className = "sidebar-brand";
 
-      /*
-       * Callback
-       */
-      const section = btn.getAttribute('data-section');
-      if (section) {
-        onSectionChange(section);
+  const iconEl = document.createElement("span");
+  iconEl.className = "sidebar-brand__icon";
+  iconEl.textContent = brandIcon || brand.charAt(0).toUpperCase();
+  brandEl.appendChild(iconEl);
+
+  const brandText = document.createElement("span");
+  brandText.textContent = brand;
+  brandEl.appendChild(brandText);
+
+  sidebar.appendChild(brandEl);
+
+  /*
+   * Sections
+   */
+  sections.forEach((section) => {
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "sidebar-section";
+
+    if (section.label) {
+      const labelEl = document.createElement("div");
+      labelEl.className = "sidebar-section__label";
+      labelEl.textContent = section.label;
+      sectionEl.appendChild(labelEl);
+    }
+
+    section.items.forEach((item) => {
+      const itemEl = document.createElement("button");
+      itemEl.className = `sidebar-item${item.active ? " sidebar-item--active" : ""}`;
+
+      const iconSpan = document.createElement("span");
+      iconSpan.className = "sidebar-item__icon";
+      iconSpan.innerHTML = createSvgIcon(item.icon);
+      itemEl.appendChild(iconSpan);
+
+      const labelSpan = document.createElement("span");
+      labelSpan.textContent = item.label;
+      itemEl.appendChild(labelSpan);
+
+      if (item.onClick) {
+        itemEl.addEventListener("click", item.onClick);
       }
+
+      sectionEl.appendChild(itemEl);
     });
+
+    sidebar.appendChild(sectionEl);
   });
+
+  /*
+   * Spacer
+   */
+  const spacer = document.createElement("div");
+  spacer.className = "sidebar-spacer";
+  sidebar.appendChild(spacer);
+
+  /*
+   * Footer
+   */
+  if (footer) {
+    const footerEl = document.createElement("div");
+    footerEl.className = "sidebar-footer";
+    footerEl.appendChild(footer);
+    sidebar.appendChild(footerEl);
+  }
 
   return sidebar;
 }
