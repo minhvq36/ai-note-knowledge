@@ -2,13 +2,9 @@
  * Login Page
  * Clean modern login form with email/password fields
  */
-/*
- * Login Page
- * Clean modern login form with email/password fields
- */
 
 import { AuthService } from '../api/services/auth';
-import { router } from '../core/router';
+import { router, ROUTES } from '../core/router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 
@@ -113,7 +109,7 @@ export const LoginPage = {
           errorDiv.textContent = error.message || 'Login failed';
           return;
         }
-        router.navigate('/dashboard');
+        router.navigate(ROUTES.DASHBOARD);
       } catch (err: any) {
         errorDiv.className = 'alert alert-error';
         errorDiv.textContent = err?.message || 'Login failed';

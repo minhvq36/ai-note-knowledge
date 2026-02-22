@@ -5,7 +5,7 @@
 import { MeService } from '../api/services/me';
 import { hasError, resolveErrorMessage } from '../api/contracts/base';
 import { store } from '../core/state';
-import { router } from '../core/router';
+import { router, ROUTES } from '../core/router';
 import { AuthService } from '../api/services/auth';
 import { createHeader } from '../components/layout/header';
 import { createTenantCard } from '../components/tenant/tenantCard';
@@ -64,7 +64,7 @@ export const DashboardPage = {
       onClick: async () => {
         await AuthService.logout();
         store.clear();
-        router.navigate('/login');
+        router.navigate(ROUTES.LOGIN);
       },
     });
 
@@ -113,7 +113,7 @@ export const DashboardPage = {
           memberCount,
           onClick: () => {
             store.setActiveTenant(t);
-            router.navigate('/workspace');
+            router.navigate(ROUTES.WORKSPACE);
           },
         });
         grid.appendChild(card);

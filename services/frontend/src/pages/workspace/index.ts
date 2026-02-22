@@ -4,7 +4,7 @@
  */
 
 import { store } from '../../core/state';
-import { router } from '../../core/router';
+import { router, ROUTES } from '../../core/router';
 import { TenantService } from '../../api/services/tenant';
 import { AuthService } from '../../api/services/auth';
 import { hasError, resolveErrorMessage } from '../../api/contracts/base';
@@ -18,7 +18,7 @@ export const WorkspacePage = {
      * Guard: ensure tenant ID is selected
      */
     if (!store.activeTenantId) {
-      router.navigate('/dashboard');
+      router.navigate(ROUTES.DASHBOARD);
       return;
     }
 
@@ -55,7 +55,7 @@ export const WorkspacePage = {
       tenant = response.data;
 
       if (!tenant) {
-        router.navigate('/dashboard');
+        router.navigate(ROUTES.DASHBOARD);
         return;
       }
 
@@ -116,7 +116,7 @@ export const WorkspacePage = {
         size: 'sm',
         onClick: () => {
           store.setActiveTenant(null);
-          router.navigate('/dashboard');
+          router.navigate(ROUTES.DASHBOARD);
         },
       }),
     });
@@ -134,7 +134,7 @@ export const WorkspacePage = {
       onClick: async () => {
         await AuthService.logout();
         store.clear();
-        router.navigate('/login');
+        router.navigate(ROUTES.LOGIN);
       },
     });
 

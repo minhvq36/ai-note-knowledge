@@ -20,6 +20,7 @@ interface RouteOptions {
 const ROUTES = {
   LOGIN: '/login',
   DASHBOARD: '/dashboard',
+  WORKSPACE: '/workspace',
 } as const;
 
 class Router {
@@ -153,3 +154,4 @@ class Router {
 }
 
 export const router = new Router();
+export { ROUTES };
