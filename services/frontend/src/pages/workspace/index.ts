@@ -11,7 +11,6 @@ import { hasError, resolveErrorMessage } from '../../api/contracts/base';
 import { createSidebar } from '../../components/layout/sidebar';
 import { createHeader } from '../../components/layout/header';
 import { Button } from '../../components/ui/button';
-import type { Tenant } from '../../api/contracts/tenant';
 
 export const WorkspacePage = {
   async render(container: HTMLElement) {
