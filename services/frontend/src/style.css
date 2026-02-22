@@ -620,6 +620,85 @@ body {
 }
 
 /*
+ * Alert / Notification Component
+ */
+.alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--radius);
+  border: 1px solid;
+  font-size: 14px;
+  animation: slideUp 200ms ease;
+}
+
+.alert__content {
+  flex: 1;
+  word-break: break-word;
+}
+
+.alert__close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 12px;
+  color: inherit;
+  opacity: 0.7;
+  transition: opacity var(--transition);
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
+.alert__close:hover {
+  opacity: 1;
+}
+
+/* Error state */
+.alert--error {
+  background-color: var(--red-light);
+  border-color: #fecaca;
+  color: #7f1d1d;
+}
+
+/* Success state */
+.alert--success {
+  background-color: var(--green-light);
+  border-color: #86efac;
+  color: #15803d;
+}
+
+/* Warning state */
+.alert--warning {
+  background-color: var(--amber-light);
+  border-color: #fde047;
+  color: #854d0e;
+}
+
+/* Info state */
+.alert--info {
+  background-color: var(--blue-light);
+  border-color: #93c5fd;
+  color: #1e3a8a;
+}
+
+/*
+ * Form error container
+ */
+#formError {
+  margin-bottom: 8px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#formError:empty {
+  display: none;
+}
+
+/*
  * Dashboard
  */
 .page-dashboard {

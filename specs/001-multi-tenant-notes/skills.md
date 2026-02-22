@@ -67,7 +67,7 @@ Update `context_process.md`:
 
 If logic / architecture changed.
 
-### 3. Always update 1-3 latest implemented tasks
+### 3. Always update 1-3 latest implemented tasks, compress it if they are too long
 
 ### 4. Never update Current Focus & Next Tasks
 

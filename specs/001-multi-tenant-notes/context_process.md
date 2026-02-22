@@ -10,7 +10,7 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-02-22
+Last Updated: 2026-02-23 (Alert Component & Form Notifications)
 Project Stage: Development
 
 ---
@@ -102,8 +102,15 @@ frontend/
   src/
     api/
     components/
+      ui/
+        button.ts
+        input.ts
+        alert.ts
     core/
     pages/
+      login.ts
+      signup.ts
+      dashboard.ts
     styles.css
 ```
 
@@ -256,6 +263,15 @@ Frontend
 * Auth session restore
 * Dashboard tenant selection
 * Workspace base layout
+* **Signup flow (REFACTORED v2)**
+  - Form: email + password + confirm (NO name field)
+  - Alert component created for error notifications
+  - Form notifications with animations (slideUp)
+  - Error dismissible (click X to close)
+  - Validation: password match, min 6 chars
+  - Success: signup → redirect /login
+  - LoginPage updated to use Alert component (consistent)
+  - CSS: alert styles for error, success, warning, info types
 
 ---
 

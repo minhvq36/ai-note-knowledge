@@ -9,6 +9,13 @@ export const AuthService = {
     })
   },
 
+  async signUp(email: string, password: string) {
+    return await supabase.auth.signUp({
+      email,
+      password,
+    })
+  },
+
   async logout() {
     await supabase.auth.signOut()
   },

@@ -19,6 +19,7 @@ interface RouteOptions {
 
 const ROUTES = {
   LOGIN: '/login',
+  SIGNUP: '/signup',
   DASHBOARD: '/dashboard',
   WORKSPACE: '/workspace',
 } as const;
@@ -109,9 +110,9 @@ class Router {
       }
 
       /**
-       * Prevent logged user visiting login
+       * Prevent logged user visiting login or signup
        */
-      if (path === ROUTES.LOGIN && store.user) {
+      if ((path === ROUTES.LOGIN || path === ROUTES.SIGNUP) && store.user) {
         this.navigate(ROUTES.DASHBOARD);
         return;
       }

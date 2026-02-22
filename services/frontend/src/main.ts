@@ -4,6 +4,7 @@ import './style.css';
 import { router } from './core/router';
 import { store } from './core/state';
 import { LoginPage } from './pages/login';
+import { SignupPage } from './pages/signup';
 import { DashboardPage } from './pages/dashboard';
 import { WorkspacePage } from './pages/workspace/index';
 
@@ -14,6 +15,8 @@ async function bootstrap() {
   router.addRoute('/', DashboardPage.render, { auth:true });
 
   router.addRoute('/login', LoginPage.render, { auth:false });
+
+  router.addRoute('/signup', SignupPage.render, { auth:false });
 
   router.addRoute('/dashboard', DashboardPage.render, { auth:true });
 

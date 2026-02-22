@@ -7,6 +7,7 @@ import { AuthService } from '../api/services/auth';
 import { router, ROUTES } from '../core/router';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
+import { Alert } from '../components/ui/alert';
 
 export const LoginPage = { 
   async render(container: HTMLElement) {
@@ -96,8 +97,7 @@ export const LoginPage = {
     const submitBtn = Button('Sign in', { variant: 'primary' });
     submitBtn.addEventListener('click', async (e) => {
       e.preventDefault();
-      errorDiv.textContent = '';
-      errorDiv.className = '';
+      errorDiv.innerHTML = '';
 
       const emailVal = (form.querySelector<HTMLInputElement>('#login-email'))?.value || '';
       const passwordVal = (form.querySelector<HTMLInputElement>('#login-password'))?.value || '';
@@ -105,14 +105,14 @@ export const LoginPage = {
       try {
         const { error } = await AuthService.login(emailVal, passwordVal); 
         if (error) {
-          errorDiv.className = 'alert alert-error';
-          errorDiv.textContent = error.message || 'Login failed';
+          const alert = Alert(error.message || 'Login failed', { type: 'error', dismissible: true });
+          errorDiv.appendChild(alert);
           return;
         }
         router.navigate(ROUTES.DASHBOARD);
       } catch (err: any) {
-        errorDiv.className = 'alert alert-error';
-        errorDiv.textContent = err?.message || 'Login failed';
+        const alert = Alert(err?.message || 'Login failed', { type: 'error', dismissible: true });
+        errorDiv.appendChild(alert);
       }
     });
     form.appendChild(submitBtn);
@@ -124,7 +124,11 @@ export const LoginPage = {
      */
     const footer = document.createElement('footer');
     footer.className = 'login-card__footer';
-    footer.innerHTML = `Don't have an account? <a href="#">Sign up</a>`;
+    const signupLink = document.createElement('a');
+    signupLink.href = '#/signup';
+    signupLink.textContent = 'Sign up';
+    footer.innerHTML = `Don't have an account? `;
+    footer.appendChild(signupLink);
     card.appendChild(footer);
 
     container.appendChild(card);
