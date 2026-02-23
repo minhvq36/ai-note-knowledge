@@ -123,6 +123,7 @@ frontend/
       login.ts
       signup.ts
       dashboard.ts
+      workspace/
     styles.css
 ```
 
@@ -262,7 +263,7 @@ Reason
 
 ---
 
-# 10. Latest Implemented Tasks (Agent Coding Part)
+# 10. Compress 1-3 Latest Implemented Tasks (Agent Coding Part)
 
 Backend
 

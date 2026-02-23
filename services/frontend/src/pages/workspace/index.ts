@@ -110,15 +110,27 @@ export const WorkspacePage = {
             },
           ],
         },
-      ],
-      footer: Button('← Back', {
-        variant: 'ghost',
-        size: 'sm',
-        onClick: () => {
-          store.setActiveTenant(null);
-          router.navigate(ROUTES.DASHBOARD);
+        {
+          label: 'Quick links',
+          items: [
+            {
+              label: 'Dashboard',
+              icon: 'grid',
+              onClick: () => {
+                store.setActiveTenant(null);
+                router.navigate(ROUTES.DASHBOARD);
+              },
+            },
+            {
+              label: 'Search',
+              icon: 'search',
+              onClick: () => {
+                /* Search functionality coming soon */
+              },
+            },
+          ],
         },
-      }),
+      ],
     });
     container.appendChild(sidebar);
 
