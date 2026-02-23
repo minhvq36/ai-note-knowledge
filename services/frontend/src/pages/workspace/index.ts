@@ -10,6 +10,7 @@ import { AuthService } from '../../api/services/auth';
 import { hasError, resolveErrorMessage } from '../../api/contracts/base';
 import { createSidebar } from '../../components/layout/sidebar';
 import { createHeader } from '../../components/layout/header';
+import { createNotesSection } from './notesSection';
 import { Button } from '../../components/ui/button';
 
 export const WorkspacePage = {
@@ -162,15 +163,7 @@ export const WorkspacePage = {
     const content = document.createElement('div');
     content.className = 'workspace-content';
 
-    const notesSection = document.createElement('section');
-    notesSection.id = 'notesSection';
-    const notesHeading = document.createElement('h2');
-    notesHeading.textContent = 'Notes';
-    const notesList = document.createElement('div');
-    notesList.className = 'notes-list';
-    notesList.innerHTML = '<p style="text-align:center;color:var(--text-secondary)">No notes yet</p>';
-    notesSection.appendChild(notesHeading);
-    notesSection.appendChild(notesList);
+    const notesSection = await createNotesSection(store.activeTenantId);
     content.appendChild(notesSection);
 
     const membersSection = document.createElement('section');

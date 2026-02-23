@@ -10,7 +10,7 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-02-23 (Modal Refactor + Create Tenant Complete)
+Last Updated: 2026-02-23 (Enterprise Layout Pattern - Flex Structure Refactor)
 Project Stage: Development
 
 ---
@@ -113,12 +113,22 @@ frontend/
         input.ts
         alert.ts
         modal.ts
+        spinner.ts
       tenant/
         createTenantDialog.ts
         tenantCard.ts
+      note/
+        noteCard.ts
     core/
       router.ts (with SIGNUP route)
       state.ts (with setActiveTenantId method)
+    pages/
+      login.ts
+      signup.ts
+      dashboard.ts
+      workspace/
+        index.ts
+        notesSection.ts
     pages/
       login.ts
       signup.ts
@@ -170,17 +180,25 @@ Implemented
 * Auth session restore
 * Base UI layout
 * Alert/notification component
+* Modal component
+* Spinner component
+* NoteService (listByTenant, create, update, delete)
+* Note data contracts
+* NoteCard component (v0 with actions support)
+* NotesSection component
 
 Working features
 
 * Login page
 * Signup page
 * Dashboard (tenant switcher + create tenant)
-* Workspace page (in progress improvements)
+* Workspace page (with sidebar navigation)
 
 Not implemented
 
-* Notes UI
+* Notes list UI component
+* Create/edit note UI
+* Delete note UI
 * Members management UI
 * Settings panel logic
 
@@ -309,6 +327,102 @@ Frontend
   - CSS: backdrop-filter blur, proper centering
   - Animation: fadeIn overlay + slideUp content
   - Max-width 480px, responsive to 90% on mobile
+* **NoteService Implementation (NEW)**
+  - NoteService.listByTenant(tenantId) - GET /tenants/{tenantId}/notes
+  - NoteService.create(tenantId, payload) - POST /tenants/{tenantId}/notes
+  - NoteService.update(noteId, payload) - PATCH /notes/{noteId}
+  - NoteService.delete(noteId) - DELETE /notes/{noteId}
+  - Note contracts defined: Note, CreateNoteRequest/Response, UpdateNoteRequest/Response, DeleteNoteResponse, ListTenantNotesResponse
+  - Follows TenantService pattern (returns ApiResponse<T>)
+  - Ready for integration with NotesSection component
+* **NotesSection Component (NEW)**
+  - Full notes CRUD UI component
+  - Fetches notes on mount: NoteService.listByTenant(tenantId)
+  - Renders:
+    - Loading state while fetching
+    - Error alert if fetch fails
+    - Grid of note cards (250px min-width, auto-fill)
+    - Each card shows pseudo-title (first 40 chars), preview content, creation date
+    - Edit and Delete buttons on hover
+    - Empty state: "No notes yet. Create your first note!"
+  - Create Note:
+    - "+ New Note" button opens modal with textarea
+    - Modal validates content not empty
+    - On save: POST to NoteService.create(), re-fetches list on success
+  - Edit Note:
+    - Edit button opens modal with prefilled content
+    - Supports multi-line content (textarea)
+    - On update: PATCH to NoteService.update(), re-fetches list on success
+  - Delete Note:
+    - Delete button shows confirmation modal
+    - On confirm: DELETE to NoteService.delete(), re-fetches list on success
+  - Local state: notes[], loading, error, editingNoteId
+  - No global state pollution (store.activeTenantId used only for fetch)
+  - Integrated into workspace page: replaces inline notes section
+* **NoteCard Component (v0 Integration)**
+  - Reusable card component for displaying individual notes
+  - Extends v0 interface with actions support:
+    - title: Pseudo-title from note content (first 40 chars)
+    - body: Full note content (clamped to 2 lines in UI)
+    - date: Creation date formatted as locale date string
+    - actions: Array of {label, onClick, className}
+  - Renders:
+    - Title section
+    - Body with 2-line text clamp (-webkit-line-clamp)
+    - Meta section (date displayed)
+    - Actions buttons (Edit, Delete) with custom styling
+  - Accessibility: role="button", tabindex="0", keyboard support (Enter/Space)
+  - Styling: hover effects, action button variants (edit/delete with color hints)
+  - Used by NotesSection to render each note in grid layout
+- **Updated Workspace Page**
+  - Imports and uses createNotesSection component
+  - Passes store.activeTenantId to component
+  - Cleaner architecture: workspace page focuses on layout, NotesSection handles notes logic
+* **SWR Pattern (Stale-While-Revalidate) Implementation**
+  - Problem: After create/edit/delete, list was cleared → loading → new list rendered = FLICKER
+  - Solution: Keep old data while revalidating in background (enterprise pattern)
+  - State changes:
+    - `loading: boolean` → `isInitialLoading: boolean` + `isFetching: boolean`
+    - Initial load: set isInitialLoading=true, show loading state
+    - Revalidation: set isFetching=true, KEEP old data, DON'T clear list
+  - Render logic:
+    - Initial load (no data): "Loading notes..."
+    - Revalidation (has data): render notes + show small "Syncing..." spinner at bottom
+    - Error during revalidation: show error banner above notes (keeps data visible)
+    - Empty state: "No notes yet. Create your first note!"
+  - Benefits:
+    - No flicker on create/edit/delete operations
+    - Instant UI feedback (old data stays visible)
+    - Background sync with "Syncing..." indicator
+    - Better UX for slower networks
+* **Spinner Component (New UI Component)**
+  - Reusable loading indicator component
+  - Supports 3 sizes: sm, md, lg
+  - Optional label parameter for text (e.g., "Syncing...")
+  - CSS classes: `.spinner`, `.spinner--sm`, `.spinner--md`, `.spinner--lg`
+  - Uses spin animation (0.8s linear infinite)
+  - Used by NotesSection for revalidation indicator during SWR pattern
+  - Cleaner than inline HTML creation
+* **Enterprise Layout Pattern (Flex Structure Refactor)**
+  - Problem: Content wasn't filling available space, scrolling was janky
+  - Solution: Proper flex layout with height constraints
+  - Key principles:
+    - Use `flex: 1` to fill available space
+    - Use `min-height: 0` to allow children to shrink below content size
+    - Use `overflow-y: auto` for independent scrolling
+  - Layout hierarchy:
+    - `.page-workspace`: `flex` container (sidebar + main)
+    - `.workspace-main`: `flex: 1`, column layout
+    - `.workspace-content`: `flex: 1`, column layout, `min-height: 0`
+    - `#notesSection`: `flex: 1`, column layout, `min-height: 0`
+    - `.notes-content`: `flex: 1`, `overflow-y: auto` (scrollable container)
+  - NotesSection styling:
+    - Header (buttons): `flex-shrink: 0` (stays at top)
+    - Content container: `flex: 1`, `overflow-y: auto` (scrolls independently)
+    - Cards: `width: 100%`, `max-width: 720px` (centered column layout)
+    - List: `flex-direction: column`, `align-items: center` (centered stack)
+  - `.hidden` utility class added for section visibility toggling
+  - Result: Proper scrolling, no layout jumps, clean responsive design
 
 ---
 
