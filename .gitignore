@@ -11,3 +11,5 @@ services/backend/app/__pycache__/config.cpython-313.pyc
 
 
 services/frontend/.env
+
+infra/.env
