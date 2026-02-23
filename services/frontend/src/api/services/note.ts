@@ -3,7 +3,6 @@ import { api } from '../client';
 /* Import type only to satisfy verbatimModuleSyntax */
 import type { ApiResponse } from '../contracts/base';
 import type {
-  Note,
   CreateNoteRequest,
   CreateNoteResponse,
   UpdateNoteRequest,

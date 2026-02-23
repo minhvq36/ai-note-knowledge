@@ -8,10 +8,11 @@ export interface ModalOptions {
   content: HTMLElement;
   footer?: HTMLElement;
   onClose?: () => void;
+  className?: string; // Add optional className for custom modal styling
 }
 
 export function Modal(options: ModalOptions): HTMLElement {
-  const { title, content, footer, onClose } = options;
+  const { title, content, footer, onClose, className } = options;
 
   const overlay = document.createElement('div');
   overlay.className = 'modal-overlay';
@@ -21,6 +22,9 @@ export function Modal(options: ModalOptions): HTMLElement {
 
   const modal = document.createElement('div');
   modal.className = 'modal';
+  if (className) {
+    modal.classList.add(className);
+  }
 
   /*
    * Header

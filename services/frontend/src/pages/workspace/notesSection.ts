@@ -76,8 +76,9 @@ function showNoteModal(
     textarea.style.borderRadius = '4px';
     textarea.style.fontFamily = 'inherit';
     textarea.style.fontSize = '14px';
-    textarea.style.minHeight = '200px';
+    textarea.style.minHeight = '300px';
     textarea.style.resize = 'vertical';
+    textarea.style.flex = '1';
     form.appendChild(textarea);
 
     let alertEl: HTMLElement | null = null;
@@ -147,6 +148,7 @@ function showNoteModal(
       onClose: () => {
         resolve();
       },
+      className: 'modal--wide', // Apply the custom class here
     });
 
     document.body.appendChild(modal);
@@ -395,6 +397,7 @@ export async function createNotesSection(tenantId: string): Promise<HTMLElement>
   }
 
   /*
+
    * Event listeners
    */
   newNoteBtn.addEventListener('click', handleCreate);
