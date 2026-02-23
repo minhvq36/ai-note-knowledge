@@ -3,7 +3,6 @@
  * Manages notes list, creation, editing, and deletion within a tenant workspace
  */
 
-import { store } from '../../core/state';
 import { NoteService } from '../../api/services/note';
 import { hasError, resolveErrorMessage } from '../../api/contracts/base';
 import type { Note, CreateNoteRequest } from '../../api/contracts/note';
