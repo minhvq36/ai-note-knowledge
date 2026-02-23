@@ -158,7 +158,7 @@ function showNoteModal(
 /*
  * Helper: Show delete confirmation modal
  */
-function showDeleteConfirmation(noteName: string): Promise<boolean> {
+function showDeleteConfirmation(): Promise<boolean> {
   return new Promise((resolve) => {
     const content = document.createElement('p');
     content.textContent = `Are you sure you want to delete this note?`;
@@ -380,7 +380,7 @@ export async function createNotesSection(tenantId: string): Promise<HTMLElement>
    * Delete note with confirmation
    */
   async function handleDelete(note: Note) {
-    const confirmed = await showDeleteConfirmation(getTitleFromContent(note.content));
+    const confirmed = await showDeleteConfirmation();
 
     if (!confirmed) return;
 
