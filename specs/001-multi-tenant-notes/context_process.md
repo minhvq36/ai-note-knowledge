@@ -1,436 +1,371 @@
-```
-20260214_context_process.md
-```
+<!--
+IMPORTANT RULES
 
-# CONTEXT PROCESS — Multi-Tenant AI Note System (Backend Endpoints Fully Validated)
+1. Keep this file under 1000 lines
+2. Prefer rewriting over appending
+3. This file is the shared context between reasoning AI and coding agents
+4. Update after major architectural changes
+5. Keep information concise and factual
+-->
+
+# CONTEXT PROCESS
+
+Last Updated: 2026-02-23 (Workspace + Notes CRUD + SWR Stabilized)
+Project Stage: Development
 
 ---
 
-## 1. Project Goal
+# 1. Project Overview
 
-* Build a production-grade Multi-Tenant AI Note & Knowledge System
-* Backend-first, DB & RLS driven
-* Supabase Postgres + RLS as source of truth
-* No model training; LLM API integration later
-* Learning-focused full-stack system engineering (infra, CI, backend, frontend)
+Multi‑Tenant AI Note & Knowledge System.
+
+Goals:
+
+* Production‑grade architecture
+* Learn full‑stack system engineering
+* Strong security via database
+* Clean frontend architecture
+
+Core ideas:
+
+* Multi‑tenant isolation
+* Database enforced permissions (RLS first)
+* Thin backend adapter
+* Simple predictable frontend
+* Avoid premature optimization (no central cache yet)
 
 ---
 
-## 2. High-Level Architecture
+# 2. Tech Stack
 
-Browser / Frontend
-→ Backend API (FastAPI, thin adapter)
+Frontend
+
+* Vanilla TypeScript
+* Manual DOM rendering
+* Vite
+* No framework / no virtual DOM
+
+Backend
+
+* FastAPI
+
+Database
+
+* Supabase Postgres
+* Row Level Security (RLS)
+* RPC driven domain logic
+
+Future Infra
+
+* Redis (optional)
+* CI/CD
+* Observability
+
+---
+
+# 3. High Level Architecture
+
+Browser
+→ Frontend SPA
+→ Backend API (FastAPI)
 → Supabase Postgres (RLS + RPC)
-→ Optional Redis (future: cache, rate-limit)
 
-Core architectural philosophy:
+Principles
 
-* Database enforces **security + invariants**
-* Backend orchestrates **flows**, not rules
-* Backend never re-implements domain logic already enforced by DB
-* All critical write logic resides in RPC
+* Database enforces security and invariants
+* Backend orchestrates flows only
+* Backend does NOT duplicate DB rules
+* Frontend manages UI + local state
+* Prefer re-fetch over optimistic update (for now)
 
 ---
 
-## 3. Repository Structure (Backend — Stable)
+# 4. Repository Structure
 
 ```
 ai-note-knowledge/
-├─ infra/
-│  └─ supabase/
-│     ├─ migrations/
-│     ├─ seed.sql
-│     └─ config.toml
-│
-├─ services/
-│  ├─ backend/
-│  │  ├─ app/
-│  │  │  ├─ config.py
-│  │  │  ├─ auth/
-│  │  │  │  └─ deps.py
-│  │  │  ├─ contracts/
-│  │  │  ├─ db/
-│  │  │  │  └─ ...adapters.py
-│  │  │  ├─ errors/
-│  │  │  │  ├─ db.py
-│  │  │  │  └─ http.py
-│  │  │  ├─ routers/
-│  │  │  │  ├─ tenants.py
-│  │  │  │  ├─ members.py
-│  │  │  │  └─ notes.py
-│  │  │  └─ main.py
-│  │  ├─ scripts_local/
-│  │  │  ├─ test_api_change_member_role.py
-│  │  │  ├─ test_api_tenant_crud.py
-│  │  │  └─ additional_e2e_tests.py
-│  │  ├─ requirements.txt
-│  │  └─ README.md
-│
-├─ specs/
-└─ README.md
+
+infra/
+  supabase/
+    migrations/
+    seed.sql
+
+services/
+  backend/
+    app/
+      auth/
+      contracts/
+      db/
+      errors/
+      routers/
+      main.py
+
+frontend/
+  src/
+    api/
+      services/
+        auth.ts
+        me.ts
+        tenant.ts
+        note.ts
+        request.ts
+    components/
+      ui/
+        button.ts
+        input.ts
+        alert.ts
+        modal.ts
+        spinner.ts
+      tenant/
+        createTenantDialog.ts
+        tenantCard.ts
+      note/
+        noteCard.ts
+    core/
+      router.ts
+      state.ts
+    pages/
+      login.ts
+      signup.ts
+      dashboard.ts
+      workspace/
+        index.ts
+        notesSection.ts
+    styles.css
 ```
 
-Locked rules:
+Rules
 
-* ❌ Backend MUST NOT contain migrations
-* ✅ All schema & RPC live in `infra/supabase/migrations`
-* Backend strictly consumes DB via RPC
-
----
-
-## 4. Tenant & Role Model (Validated in Production-like Conditions)
-
-Multi-tenant model:
-
-* M tenants, N users
-* Roles: owner, admin, member
-
-DB-enforced invariants:
-
-* Tenant must always have ≥ 1 owner
-* Only owner can change roles
-* Owner cannot remove or downgrade the last owner
-* Concurrency safety enforced via `FOR UPDATE`
-
-Backend assumes DB invariants are absolute.
+* Router: `src/core/router`
+* Global state: `src/core/state`
+* API client: `src/api`
+* Components: `src/components`
+* Pages compose components only
+* UI variants (size, layout) use modifier classes, not new components
 
 ---
 
-## 5. Core Tables (Locked Baseline)
+# 5. Backend Status
+
+Backend is functionally complete and stable.
+
+Completed
+
+* Tenant management
+* Membership workflows
+* Notes CRUD
+* Sharing system
+* Full RLS security
+* RPC based domain logic
+* HTTP layer stabilization
+* E2E tests passing
+
+Important rule
+
+* Backend MUST NOT contain migrations
+* All schema lives in `infra/supabase/migrations`
+
+---
+
+# 6. Frontend Status
+
+Frontend baseline architecture completed.
+
+Implemented
+
+* Router system (login, signup, dashboard, workspace)
+* Global state (activeTenantId)
+* Auth session restore
+* Alert component
+* Modal component (reusable, variant-ready)
+* Spinner component (sm/md/lg)
+* Tenant creation flow (modal based)
+* Workspace layout (flex refactor)
+* NoteService (listByTenant, create, update, delete)
+* NoteCard component
+* NotesSection component (full CRUD)
+
+Workspace + Notes Behavior
+
+* Fetch notes by tenant
+* Create note → POST → revalidate
+* Edit note → PATCH → revalidate
+* Delete note → DELETE → revalidate
+* No optimistic update
+* No central cache
+
+State Strategy
+
+* Local component state only
+* Global store only holds activeTenantId
+* Re-fetch after mutation
+* Prefer consistency over cleverness
+
+---
+
+# 7. Data Model Summary
+
+Core entities
 
 * tenants
-* users (mirrored from auth.users)
+* users
 * tenant_members
 * tenant_join_requests
 * notes
 * note_shares
 * audit_logs
 
-Schema + RLS considered stable.
+Important invariants
+
+* Tenant must always have at least one owner
+* Only owner can change roles
+* Last owner cannot be removed
+* RLS guarantees tenant isolation
 
 ---
 
-## 6. Security & RLS Model (Validated)
+# 8. API Surface (Stable)
 
-* RLS is the primary security boundary
-* JWT forwarded client → backend → PostgREST
-* Backend does NOT decode JWT
-* RPC functions use `SECURITY DEFINER`
-* DB enforces:
+Tenant
 
-  * `auth.uid()` authentication
-  * Role permissions
-  * Ownership invariants
-  * Last-owner safety
-  * Concurrency correctness
+POST   /tenants
+GET    /tenants
+DELETE /tenants/{tenant_id}
 
-Security boundary verified through E2E negative test cases.
+Membership
 
----
+POST /tenants/{tenant_id}/requests/join
+POST /requests/{request_id}/approve
+POST /requests/{request_id}/reject
+POST /requests/{request_id}/cancel
+POST /tenants/{tenant_id}/invites
+POST /requests/{request_id}/accept
+POST /requests/{request_id}/decline
+POST /requests/{request_id}/revoke
 
-## 7. RPC Surface (Current State)
+Notes
 
-### Tenant & Membership (Exposed & Tested)
+POST   /tenants/{tenant_id}/notes
+GET    /tenants/{tenant_id}/notes
+GET    /notes/{note_id}
+PATCH  /notes/{note_id}
+DELETE /notes/{note_id}
 
-* create_tenant
-* delete_tenant
-* change_tenant_member_role
-* remove_tenant_member
-* leave_tenant
+Notes design decision
 
-### Join / Invite (Implemented, HTTP partially exposed)
-
-* request_join_tenant
-* approve_join_request
-* reject_join_request
-* cancel_join_request
-* invite_user_to_tenant
-* accept_invite
-* decline_invite
-* cancel_invite
-
-### Notes (Write-side partially validated)
-
-* create_note
-* delete_note
-* change_note_share_permission
-
-All business logic lives strictly in RPC.
+* tenantId required only for list + create
+* noteId sufficient for update/delete (RLS enforces ownership)
 
 ---
 
-## 8. Backend HTTP Layer (Fully Stabilized)
+# 9. Architecture Decisions
 
-### Auth Dependency
+Database owns business rules
 
-* Extracts `Authorization: Bearer <token>`
-* Validates header format only
-* Raises 401 on malformed or missing header
-* No JWT decode logic
+Reason
 
-### Domain Error Model (Stable)
+* Strong consistency
+* Security guaranteed
+* Less duplicated logic
 
-```python
-class DomainError(Exception):
-    code = "DOMAIN_ERROR"
+Re-fetch over optimistic update (current phase)
 
-class PermissionDenied(DomainError):
-    code = "PERMISSION_DENIED"
-```
+Reason
 
-Principles:
+* No central cache layer
+* No normalization layer
+* No entity store
+* Avoid stale mutation edge cases
+* Simpler mental model
 
-* Router layer never invents errors
-* Router layer never checks business rules
-* Invalid DB results treated as DB-layer failure
-* Errors sanitized before HTTP response
-* One-directional error propagation
+SWR (Stale‑While‑Revalidate) adopted
 
----
+Reason
 
-## 9. Standard HTTP Response Contract (Locked)
+* Avoid flicker on mutation
+* Keep previous data during background fetch
+* Enterprise UX pattern
 
-```json
-{
-  "success": true | false,
-  "data": object | null,
-  "error": {
-    "code": "PERMISSION_DENIED",
-    "message": "Human readable message"
-  } | null
-}
-```
+Vanilla frontend before React
 
-Rules:
+Reason
 
-* Routers always return `ApiResponse`
-* Void RPCs return explicit success confirmation
-* No raw DB errors leak to client
+* Understand routing
+* Understand rendering
+* Avoid framework abstraction early
+
+Modal size via variant classes
+
+Reason
+
+* Size difference is visual concern
+* Do not create separate modal components for small/large
 
 ---
 
-## 10. HTTP E2E Test Coverage (Expanded & Passing)
-
-### Membership Control
-
-Validated:
-
-* Owner changes role → 200
-* Member changes role → 403
-* Downgrade last owner → 409
-* Non-member attempting role change → 403
-
-### Tenant CRUD
-
-Validated:
-
-* Create tenant → 200
-* Delete empty tenant by owner → 200
-* Delete by non-owner → 403
-* Leave tenant (last owner blocked) → 409
-
-### Observed
-
-* Zero business logic in routers
-* DomainError mapping consistent
-* Error propagation stable
-* No internal leakage in responses
-
-Backend write endpoints considered stable.
+# 10. Latest Implemented Tasks
 
 ---
 
-## 11. Functional Scope — Completed
+# 11. Known Problems / Tech Debt
 
-All planned endpoints across all domains are now implemented and HTTP-exposed:
-
-### Batch 0 — Tenant & Role Management (DONE & VALIDATED)
-
-* create_tenant ✅
-* change_member_role ✅
-* remove_member ✅
-* leave_tenant ✅
-* delete_tenant ✅
-
-### Batch 1 — Tenant Query & Admin Operations (DONE)
-
-* list_tenants ✅
-* get_tenant_details ✅
-* list_tenant_members ✅
-* list_join_requests ✅
-* list_invites ✅
-* list_my_invites ✅
-* list_my_join_requests ✅
-
-### Batch 2 — Membership Workflow (DONE)
-
-* request_join_tenant ✅
-* approve_join_request ✅
-* reject_join_request ✅
-* cancel_join_request ✅
-* invite_user_to_tenant ✅
-* accept_invite ✅
-* decline_invite ✅
-* revoke_invite ✅
-
-All flows validated with cross-tenant isolation.
-
-### Batch 3 — Notes & Sharing (DONE)
-
-* create_note ✅
-* get_note ✅
-* list_my_notes ✅
-* list_tenant_notes ✅
-* update_note ✅
-* delete_note ✅
-* share_note ✅
-* revoke_share ✅
-* list_note_shares ✅
-* list_shared_with_me ✅
-
-Full lifecycle with RLS-enforced access control validated.
+* Router re-renders entire page
+* No centralized data cache
+* No normalization layer
+* No optimistic updates
+* Limited observability
 
 ---
 
-## 12. Current System State (Functional Baseline Complete)
+# 12. Current Focus & Next Tasks
 
-### Completed
+Current Focus
 
-* ✅ Schema + RLS locked
-* ✅ All RPC implementations complete (21 migrations)
-* ✅ Domain error model validated
-* ✅ HTTP global exception handler stable
-* ✅ All endpoints tested E2E (write + read)
-* ✅ Security boundary validated through negative testing
-* ✅ Router layer responsibility strictly enforced
-* ✅ Write-plane production-structured
-* ✅ Read-plane fully exposed and RLS-protected
-* ✅ Cross-tenant isolation verified
+* Improve workspace UX consistency
+* Reduce UI friction
 
-### Not Yet Addressed
+Immediate Tasks
 
-* ⚠️ Observability (structured logging, request correlation)
-* ⚠️ Performance baseline (latency measurement, profiling)
-* ⚠️ OpenAPI contract formalization
-* ⚠️ CI/CD pipeline
-* ⚠️ Frontend integration
+1. Members management UI
+2. Settings panel logic
+3. Improve error handling consistency
+4. Improve tenant switching UX
 
-**Status:** Functional core is production-ready. Next focus is operational maturity, not feature implementation.
+Near Future
+
+5. Observability hooks
+6. Performance baseline
+7. OpenAPI contract export
 
 ---
 
-## 13. As a Professional System Engineer — What Is the Real Next Step?
+# 13. Long Term Roadmap
 
-You have achieved **functional completeness**.
-Now you transition to **operational maturity and production hardening**.
+System Engineering
 
-### Phase 1 — Performance & Efficiency Audit (Immediate Priority)
+* Observability
+* Performance profiling
+* Production deployment
 
-1. Measure latency baseline for all endpoints (p50, p95, p99)
-2. Identify N+1 query patterns or inefficient RPC calls
-3. Profile hot paths and add indexes as needed
-4. Validate pagination efficiency across large datasets
-5. Stress test under concurrent load
+Infrastructure
 
-Goal: Establish performance baseline before frontend load.
+* Redis (if justified)
+* Docker
+* CI/CD
 
----
+Frontend Evolution
 
-### Phase 2 — Production Hardening (Critical Next Evolution)
-
-This is the real professional move.
-
-#### 1️⃣ Observability Layer
-
-Introduce:
-
-* Structured logging (JSON logs)
-* Request ID correlation
-* Error-level logging for DomainError only
-* Latency measurement per endpoint
-
-Goal: measurable backend behavior.
+* Potential React migration
+* Possible central cache introduction (TanStack Query style pattern)
 
 ---
 
-#### 2️⃣ OpenAPI Contract Freeze
+# 14. Working Principles
 
-* Validate response schemas
-* Remove accidental inconsistencies
-* Lock API contract before frontend integration
-* Version API (`/v1/` prefix)
-
-Goal: long-term API stability.
-
----
-
-#### 3️⃣ CI Pipeline
-
-Add:
-
-* Lint (ruff / black)
-* Type checking (mypy strict mode)
-* Unit tests
-* E2E smoke tests
-* Migration drift check (supabase diff)
-
-Goal: prevent architectural regression.
-
----
-
-#### 4️⃣ Security Validation
-
-* JWT spoof simulation
-* Cross-tenant access penetration test
-* Last-owner race condition stress test
-* Verify all RPC use `SECURITY DEFINER` correctly
-
-Goal: security confidence under adversarial scenarios.
-
----
-
-#### 5️⃣ Performance Baseline
-
-Before frontend:
-
-* Measure:
-
-  * p50 / p95 latency
-  * DB round trips
-  * RPC execution cost
-* Add indexes where needed
-* Ensure no sequential scan on critical tables
-
-Goal: prevent scaling surprises later.
-
----
-
-## 14. Strategic Direction
-
-You are moving from:
-
-> "It works."
-
-to
-
-> "It is safe, observable, measurable, and scalable."
-
-The system is now architecturally correct.
-The next evolution is operational excellence.
-
----
-
-## 15. Decision Philosophy (Reaffirmed)
-
-* DB is the law
-* Routers are dumb
-* Errors flow in one direction only
-* Security is data-layer enforced
-* Stability > speed
-* Observability before feature expansion
-
----
-
-**Current maturity level:**
-Backend foundation solid.
-Ready to transition into production-grade engineering practices.
+* Database is the source of truth
+* Routers stay simple
+* No duplicated domain logic
+* Security enforced at data layer
+* Stability over cleverness
+* UX smoothness without over‑engineering
+* Refactor when architecture pressure appears

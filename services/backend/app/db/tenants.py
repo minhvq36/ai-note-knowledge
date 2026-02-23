@@ -246,3 +246,45 @@ def list_tenant_members(
         domain_error = map_db_error(exc) # TO CHANGE WITH MAP QUERY ERROR
         raise domain_error
 
+
+def list_my_tenants(
+    *,
+    access_token: str,
+    limit: int = 20,
+    offset: int = 0,
+):
+    """
+    List all tenants the authenticated user is a member of.
+    
+    This query joins tenant_members with tenants to get tenant info for user.
+    RLS enforces: implicit - only the authenticated user's own memberships.
+    Returns tenant items with pagination.
+    """
+    from app.errors.db import map_db_error
+
+    """
+    Create new client with user-specific auth context.
+    Each request gets its own client instance to avoid auth context collisions.
+    """
+    client = get_supabase_client()
+    client.postgrest.auth(access_token)
+
+    try:
+        """
+        Query tenant_members joined with tenants table.
+        Since we filter by the authenticated user's membership,
+        we get back all tenants they belong to with tenant metadata.
+        RLS on tenant_members ensures only querying own memberships.
+        """
+        result = (
+            client.table("tenant_members")
+            .select("tenants(id, name, created_at)", count="exact")
+            .limit(limit)
+            .offset(offset)
+            .execute()
+        )
+        return result
+
+    except Exception as exc:
+        domain_error = map_db_error(exc)
+        raise domain_error

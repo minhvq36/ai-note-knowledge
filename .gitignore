@@ -7,3 +7,6 @@ services/backend/.env
 **/__pycache__/
 *.py[cod]
 services/backend/app/__pycache__/
+
+
+services/frontend/.env

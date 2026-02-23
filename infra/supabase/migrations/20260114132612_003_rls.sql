@@ -242,9 +242,6 @@ create policy "tenant_members_select_same_tenant"
 on tenant_members
 for select
 using (
-    -- User can see their own memberships
-    user_id = (select auth.uid()) 
-    OR 
     -- User can see memberships of tenants they belong to
     tenant_id IN (
         SELECT ret_tenant_id FROM auth_user_tenant_ids()
