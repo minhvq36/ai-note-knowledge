@@ -10,7 +10,7 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-02-23 (Alert Component & Form Notifications)
+Last Updated: 2026-02-23 (Modal Refactor + Create Tenant Complete)
 Project Stage: Development
 
 ---
@@ -101,12 +101,24 @@ services/
 frontend/
   src/
     api/
+      services/
+        auth.ts (with signUp method)
+        me.ts
+        tenant.ts (with create method)
+        note.ts
+        request.ts
     components/
       ui/
         button.ts
         input.ts
         alert.ts
+        modal.ts
+      tenant/
+        createTenantDialog.ts
+        tenantCard.ts
     core/
+      router.ts (with SIGNUP route)
+      state.ts (with setActiveTenantId method)
     pages/
       login.ts
       signup.ts
@@ -156,11 +168,13 @@ Implemented
 * Global state
 * Auth session restore
 * Base UI layout
+* Alert/notification component
 
 Working features
 
 * Login page
-* Dashboard (tenant switcher)
+* Signup page
+* Dashboard (tenant switcher + create tenant)
 * Workspace page (in progress improvements)
 
 Not implemented
@@ -258,20 +272,42 @@ Backend
 
 Frontend
 
-* Router working
-* State store working
+* Router working (with /signup route)
+* State store working (with setActiveTenantId method)
 * Auth session restore
-* Dashboard tenant selection
+* Dashboard tenant selection + create workspace
 * Workspace base layout
-* **Signup flow (REFACTORED v2)**
-  - Form: email + password + confirm (NO name field)
-  - Alert component created for error notifications
-  - Form notifications with animations (slideUp)
-  - Error dismissible (click X to close)
-  - Validation: password match, min 6 chars
-  - Success: signup → redirect /login
-  - LoginPage updated to use Alert component (consistent)
-  - CSS: alert styles for error, success, warning, info types
+* **Auth Flows (Signup)**
+  - SignupPage: email + password + confirm password form
+  - AuthService.signUp() method integrated with Supabase
+  - Form validation: password match, min 6 chars
+  - Error handling with Alert notifications
+  - Success: redirect to login
+  - LoginPage links to /signup route
+* **Alert/Notification Component**
+  - Reusable Alert component with types: error, success, warning, info
+  - Dismissible alerts (click × closes)
+  - Animations: slideUp 200ms
+  - Used in Login, Signup, and Dialog forms
+* **Create Tenant Flow (COMPLETE)**
+  - TenantService.create(name) - POST /tenants
+  - Dashboard "Create Workspace" button
+  - Modal-based form (reusable Modal component)
+  - CreateTenantDialog component for form UI
+  - Form validation: name not empty
+  - State management: store.setActiveTenantId(tenant_id)
+  - Workspace page fetches full tenant details
+  - Error handling: show alert, user can retry
+  - Success: navigate to /workspace
+* **Modal Component (REFACTORED)**
+  - Reusable Modal wrapper: takes { title, content, footer, onClose }
+  - Close button with SVG icon
+  - Support dismiss on overlay click
+  - Support Escape key to close
+  - Accessibility: role=dialog, aria-modal
+  - CSS: backdrop-filter blur, proper centering
+  - Animation: fadeIn overlay + slideUp content
+  - Max-width 480px, responsive to 90% on mobile
 
 ---
 

@@ -3,12 +3,14 @@
  * Workspace list with create dialog and tenant management
  */
 import { MeService } from '../api/services/me';
+import { TenantService } from '../api/services/tenant';
 import { hasError, resolveErrorMessage } from '../api/contracts/base';
 import { store } from '../core/state';
 import { router, ROUTES } from '../core/router';
 import { AuthService } from '../api/services/auth';
 import { createHeader } from '../components/layout/header';
 import { createTenantCard } from '../components/tenant/tenantCard';
+import { CreateTenantDialog } from '../components/tenant/createTenantDialog';
 import { Button } from '../components/ui/button';
 
 export const DashboardPage = {
@@ -56,8 +58,35 @@ export const DashboardPage = {
     container.className = 'page-dashboard';
 
     /*
-     * Header with Sign out
+     * Header with Create and Sign out
      */
+    const createBtn = Button('+ Create Workspace', {
+      variant: 'primary',
+      size: 'sm',
+      onClick: () => {
+        const dialog = CreateTenantDialog({
+          onSubmit: async (data) => {
+            const result = await TenantService.create({ name: data.name });
+
+            if (hasError(result)) {
+              throw new Error(resolveErrorMessage(result.error));
+            }
+
+            /*
+             * Set tenant ID and navigate to workspace
+             * Workspace page will fetch full tenant details
+             */
+            const tenantId = result.data?.tenant_id;
+            if (!tenantId) {
+              throw new Error('Invalid workspace response');
+            }
+            store.setActiveTenantId(tenantId);
+            router.navigate(ROUTES.WORKSPACE);
+          },
+        });
+        document.body.appendChild(dialog);
+      },
+    });
     const signOutBtn = Button('Sign out', {
       variant: 'ghost',
       size: 'sm',
@@ -70,7 +99,7 @@ export const DashboardPage = {
 
     const header = createHeader({
       title: 'Workspaces',
-      actions: [signOutBtn],
+      actions: [createBtn, signOutBtn],
     });
     container.appendChild(header);
 
@@ -112,7 +141,7 @@ export const DashboardPage = {
           role,
           memberCount,
           onClick: () => {
-            store.setActiveTenant(t);
+            store.setActiveTenantId(t.id);
             router.navigate(ROUTES.WORKSPACE);
           },
         });

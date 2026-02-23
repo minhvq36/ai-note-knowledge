@@ -102,6 +102,20 @@ class GlobalStore {
     this.notify('tenant-changed');
   }
 
+  /*
+   * Set only tenant ID when full tenant object is not available
+   * Used after tenant creation when we only have the tenant_id
+   * Workspace page will fetch full tenant details
+   */
+  setActiveTenantId(tenantId: string) {
+    this.state.activeTenant = null;
+    this.state.activeTenantId = tenantId;
+
+    localStorage.setItem('active_tenant_id', tenantId);
+
+    this.notify('tenant-changed');
+  }
+
   /* ===============================
      Utility
   ================================= */

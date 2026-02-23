@@ -1,100 +1,112 @@
 /*
- * CreateTenantDialog Component
- * Modal for creating a new workspace/tenant
+ * Create Tenant Dialog Component
+ * Form to create new workspace
  */
 
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
+import { Modal } from '../ui/modal';
+import { Input } from '../ui/input';
+import { Button } from '../ui/button';
+import { Alert } from '../ui/alert';
 
 export interface CreateTenantDialogOptions {
-  onSubmit?: (tenantName: string) => void;
-  onCancel?: () => void;
+  onSubmit?: (data: { name: string }) => Promise<void>;
+  onClose?: () => void;
 }
 
-export function createCreateTenantDialog(options: CreateTenantDialogOptions = {}): HTMLDialogElement {
-  const { onSubmit, onCancel } = options;
+export function CreateTenantDialog(options: CreateTenantDialogOptions = {}): HTMLElement {
+  const { onSubmit, onClose } = options;
 
-  const dialog = document.createElement("dialog");
-  dialog.className = "modal-overlay";
-
-  const modal = document.createElement("div");
-  modal.className = "modal";
+  const form = document.createElement('div');
+  form.className = 'create-dialog-form';
 
   /*
-   * Header
+   * Error display
    */
-  const header = document.createElement("div");
-  header.className = "modal-header";
-
-  const title = document.createElement("h2");
-  title.textContent = "Create workspace";
-  header.appendChild(title);
-
-  const closeBtn = document.createElement("button");
-  closeBtn.className = "modal-close";
-  closeBtn.innerHTML = "✕";
-  closeBtn.addEventListener("click", () => {
-    dialog.close();
-    onCancel?.();
-  });
-  header.appendChild(closeBtn);
-
-  modal.appendChild(header);
+  const errorDiv = document.createElement('div');
+  errorDiv.id = 'createTenantDialogError';
+  form.appendChild(errorDiv);
 
   /*
-   * Body
+   * Name input
    */
-  const body = document.createElement("div");
-  body.className = "modal-body";
-
   const nameInput = Input({
-    label: "Workspace name",
-    placeholder: "My Workspace",
+    label: 'Workspace name',
+    placeholder: 'My Workspace',
     required: true,
-    id: "workspace-name",
+    id: 'workspace-name-input',
   });
-  body.appendChild(nameInput);
-
-  modal.appendChild(body);
+  form.appendChild(nameInput);
 
   /*
-   * Footer
+   * Button footer
    */
-  const footer = document.createElement("div");
-  footer.className = "modal-footer";
+  const footerDiv = document.createElement('div');
+  footerDiv.style.display = 'flex';
+  footerDiv.style.gap = '8px';
+  footerDiv.style.justifyContent = 'flex-end';
+  footerDiv.style.width = '100%';
 
-  const cancelBtn = Button("Cancel", { variant: "ghost" });
-  cancelBtn.addEventListener("click", () => {
-    dialog.close();
-    onCancel?.();
+  let isSubmitting = false;
+
+  const cancelBtn = Button('Cancel', {
+    variant: 'ghost',
+    onClick: () => {
+      modal.remove();
+      onClose?.();
+    },
   });
-  footer.appendChild(cancelBtn);
 
-  const submitBtn = Button("Create", { variant: "primary" });
-  submitBtn.addEventListener("click", () => {
-    const input = dialog.querySelector<HTMLInputElement>("#workspace-name");
-    if (input?.value) {
-      onSubmit?.(input.value);
+  const createBtn = Button('Create workspace', { variant: 'primary' });
+  createBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
+    if (isSubmitting) return;
+
+    errorDiv.innerHTML = '';
+    const nameEl = nameInput.querySelector<HTMLInputElement>('input');
+    const nameVal = nameEl?.value.trim() || '';
+
+    if (!nameVal) {
+      const alert = Alert('Workspace name cannot be empty', { type: 'error' });
+      errorDiv.appendChild(alert);
+      nameEl?.focus();
+      return;
+    }
+
+    isSubmitting = true;
+    createBtn.setAttribute('disabled', 'true');
+
+    try {
+      await onSubmit?.({ name: nameVal });
+      modal.remove();
+    } catch (err: any) {
+      const alert = Alert(err?.message || 'Failed to create workspace', { type: 'error' });
+      errorDiv.appendChild(alert);
+      createBtn.removeAttribute('disabled');
+      isSubmitting = false;
     }
   });
-  footer.appendChild(submitBtn);
 
-  modal.appendChild(footer);
-  dialog.appendChild(modal);
+  footerDiv.appendChild(cancelBtn);
+  footerDiv.appendChild(createBtn);
 
   /*
-   * Dialog styling
+   * Create modal
    */
-  Object.assign(dialog.style, {
-    border: "none",
-    padding: "0",
-    margin: "0",
-    width: "100vw",
-    height: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
+  const modal = Modal({
+    title: 'Create workspace',
+    content: form,
+    footer: footerDiv,
+    onClose,
   });
 
-  return dialog;
+  /*
+   * Auto-focus input
+   */
+  setTimeout(() => {
+    const nameEl = nameInput.querySelector<HTMLInputElement>('input');
+    nameEl?.focus();
+  }, 0);
+
+  return modal;
 }
