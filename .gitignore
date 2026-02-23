@@ -7,6 +7,7 @@ services/backend/.env
 **/__pycache__/
 *.py[cod]
 services/backend/app/__pycache__/
+services/backend/app/__pycache__/config.cpython-313.pyc
 
 
 services/frontend/.env
