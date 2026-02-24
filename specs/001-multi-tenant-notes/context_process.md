@@ -10,7 +10,7 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-02-23 (Workspace + Notes CRUD + SWR Stabilized)
+Last Updated: 2026-02-24 (CORS Fix + Redis Planning)
 Project Stage: Development
 
 ---
@@ -57,7 +57,7 @@ Database
 
 Future Infra
 
-* Redis (optional)
+* Redis (rate limit + selective cache)
 * CI/CD
 * Observability
 
@@ -69,6 +69,9 @@ Browser
 → Frontend SPA
 → Backend API (FastAPI)
 → Supabase Postgres (RLS + RPC)
+
+(Planned addition)
+→ Redis (rate limit + cache layer)
 
 Principles
 
@@ -141,7 +144,7 @@ Rules
 * API client: `src/api`
 * Components: `src/components`
 * Pages compose components only
-* UI variants (size, layout) use modifier classes, not new components
+* UI variants use modifier classes
 
 ---
 
@@ -173,33 +176,19 @@ Frontend baseline architecture completed.
 
 Implemented
 
-* Router system (login, signup, dashboard, workspace)
+* Router system
 * Global state (activeTenantId)
 * Auth session restore
-* Alert component
-* Modal component (reusable, variant-ready)
-* Spinner component (sm/md/lg)
-* Tenant creation flow (modal based)
-* Workspace layout (flex refactor)
-* NoteService (listByTenant, create, update, delete)
-* NoteCard component
-* NotesSection component (full CRUD)
-
-Workspace + Notes Behavior
-
-* Fetch notes by tenant
-* Create note → POST → revalidate
-* Edit note → PATCH → revalidate
-* Delete note → DELETE → revalidate
-* No optimistic update
-* No central cache
+* Reusable UI components
+* Full notes CRUD flow
 
 State Strategy
 
 * Local component state only
-* Global store only holds activeTenantId
+* Global store holds activeTenantId
 * Re-fetch after mutation
-* Prefer consistency over cleverness
+* No optimistic update
+* No central cache
 
 ---
 
@@ -226,35 +215,47 @@ Important invariants
 
 # 8. API Surface (Stable)
 
-Tenant
+User (Me)
+GET    /me/tenants
+GET    /me/invites/pending
+GET    /me/requests
+GET    /me/notes/shared
 
+Tenant CRUD
 POST   /tenants
 GET    /tenants
 DELETE /tenants/{tenant_id}
 
-Membership
+Tenant Members
+POST   /tenants/{tenant_id}/members/{user_id}/role
+DELETE /tenants/{tenant_id}/members/{user_id}
 
-POST /tenants/{tenant_id}/requests/join
-POST /requests/{request_id}/approve
-POST /requests/{request_id}/reject
-POST /requests/{request_id}/cancel
-POST /tenants/{tenant_id}/invites
-POST /requests/{request_id}/accept
-POST /requests/{request_id}/decline
-POST /requests/{request_id}/revoke
+Join Requests
+POST   /tenants/{tenant_id}/requests/join
+POST   /requests/{request_id}/approve
+POST   /requests/{request_id}/reject
+POST   /requests/{request_id}/cancel
 
-Notes
+Invites
+POST   /tenants/{tenant_id}/invites
+POST   /requests/{request_id}/accept
+POST   /requests/{request_id}/decline
+POST   /requests/{request_id}/revoke
 
+Tenant Notes
 POST   /tenants/{tenant_id}/notes
 GET    /tenants/{tenant_id}/notes
+
+Notes (Global)
+GET    /notes
 GET    /notes/{note_id}
 PATCH  /notes/{note_id}
 DELETE /notes/{note_id}
 
-Notes design decision
-
-* tenantId required only for list + create
-* noteId sufficient for update/delete (RLS enforces ownership)
+Note Shares
+POST   /notes/{note_id}/shares
+GET    /notes/{note_id}/shares
+DELETE /notes/{note_id}/shares/{target_user_id}
 
 ---
 
@@ -262,48 +263,21 @@ Notes design decision
 
 Database owns business rules
 
-Reason
+Re-fetch over optimistic update
 
-* Strong consistency
-* Security guaranteed
-* Less duplicated logic
-
-Re-fetch over optimistic update (current phase)
-
-Reason
-
-* No central cache layer
-* No normalization layer
-* No entity store
-* Avoid stale mutation edge cases
-* Simpler mental model
-
-SWR (Stale‑While‑Revalidate) adopted
-
-Reason
-
-* Avoid flicker on mutation
-* Keep previous data during background fetch
-* Enterprise UX pattern
+SWR adopted
 
 Vanilla frontend before React
-
-Reason
-
-* Understand routing
-* Understand rendering
-* Avoid framework abstraction early
-
-Modal size via variant classes
-
-Reason
-
-* Size difference is visual concern
-* Do not create separate modal components for small/large
 
 ---
 
 # 10. Latest Implemented Tasks
+
+**2026-02-24 - CORS Configuration Fix**
+
+* Fixed CORS_ORIGINS env parsing
+* Backend restarted successfully
+* Branch: v0.6.1-middleware-messagebroker
 
 ---
 
@@ -323,19 +297,28 @@ Current Focus
 
 * Improve workspace UX consistency
 * Reduce UI friction
+* Prepare Redis integration (rate limit + selective cache)
 
-Immediate Tasks
+Rate Limit Checklist
 
-1. Members management UI
-2. Settings panel logic
-3. Improve error handling consistency
-4. Improve tenant switching UX
+1. Add Redis to docker-compose
+2. Create Redis connection module
+3. Implement middleware (Fixed window)
+4. Protect login endpoint
+5. Add user-based limit
+6. Add tenant-based limit
+7. Return HTTP 429 consistently
+8. Redis failure must not break API
 
-Near Future
+Cache Checklist
 
-5. Observability hooks
-6. Performance baseline
-7. OpenAPI contract export
+1. Identify safe cache endpoints (dashboard / aggregation only)
+2. Implement cache-aside helper
+3. Add TTL (30–60s)
+4. DEL cache on write endpoints
+5. Do NOT cache transactional data
+6. Add hit/miss logging
+7. Measure latency before/after
 
 ---
 
@@ -349,23 +332,22 @@ System Engineering
 
 Infrastructure
 
-* Redis (if justified)
+* Redis (rate limit + cache)
 * Docker
 * CI/CD
 
 Frontend Evolution
 
 * Potential React migration
-* Possible central cache introduction (TanStack Query style pattern)
+* Possible central cache introduction
 
 ---
 
 # 14. Working Principles
 
 * Database is the source of truth
-* Routers stay simple
+* Redis is performance layer only
 * No duplicated domain logic
 * Security enforced at data layer
 * Stability over cleverness
-* UX smoothness without over‑engineering
 * Refactor when architecture pressure appears
