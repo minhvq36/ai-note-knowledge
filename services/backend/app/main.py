@@ -12,6 +12,8 @@ from app.http.response import ApiResponse, ErrorPayload
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
+from app.core.redis import init_redis, close_redis
+
 app = FastAPI(title="AI Note Knowledge Backend")
 
 
@@ -64,7 +66,14 @@ async def domain_error_handler(request: Request, exc: DomainError):
         content=payload.model_dump(),
     )
 
+@app.on_event("startup")
+async def startup():
+    await init_redis(app)
 
+@app.on_event("shutdown")
+async def shutdown():
+    await close_redis(app)
+    
 app.include_router(members_router)
 app.include_router(tenants_router)
 app.include_router(requests_router)

@@ -8,7 +8,6 @@ Endpoints:
 - GET /me/notes/shared - List notes shared with authenticated user
 """
 
-from uuid import UUID
 from fastapi import APIRouter, Depends, Query
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
