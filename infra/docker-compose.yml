@@ -1,6 +1,16 @@
 version: '3.9'
 
 services:
+  redis:
+    image: redis:7-alpine
+    container_name: ai-note-redis
+    ports:
+      - "6379:6379"
+    command: redis-server --save "" --appendonly no
+    networks:
+      - ai-note-network
+    restart: unless-stopped
+
   # Backend Service
   backend:
     build:

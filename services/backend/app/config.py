@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     SUPABASE_PUBLISHABLE_KEY: str
     
     CORS_ORIGINS: list[str] = []
+    
+    REDIS_URL: str
 
     class Config:
         env_file = ".env"
