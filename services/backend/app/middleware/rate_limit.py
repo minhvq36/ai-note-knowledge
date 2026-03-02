@@ -1,35 +1,33 @@
 # English comments only
 
 from typing import Callable, Optional
-from fastapi import Request, HTTPException, status
-from app.core.rate_limit import TokenBucket
+from fastapi import Request, HTTPException, status, Depends
+
+from app.core.dependencies import get_limiter
+from app.core.rate_limit import RateLimiter
 
 
 def rate_limit(
-    bucket: TokenBucket,
     *,
-    scope: str = "global",
+    scope: str = "ip",
     capacity: int = 10,
     refill_rate: float = 1.0,
     ttl: int = 120,
     key_builder: Optional[Callable[[Request], str]] = None,
 ):
     """
-    Generic Rate Limit Dependency.
+    Generic Rate Limit Dependency using RateLimiter service.
 
-    Args:
-        bucket: TokenBucket engine instance
-        scope: global | ip | user | tenant | custom
-        capacity: max tokens
-        refill_rate: tokens per second
-        ttl: redis key ttl
-        key_builder: optional custom key builder override
-
-    Usage:
-        Depends(rate_limit(...))
+    Middleware is responsible ONLY for:
+    - Extracting request context
+    - Building key
+    - Delegating to RateLimiter
     """
 
-    async def dependency(request: Request):
+    async def dependency(
+        request: Request,
+        limiter: RateLimiter = Depends(get_limiter),
+    ):
         # Build key
         if key_builder:
             key = key_builder(request)
@@ -42,7 +40,6 @@ def rate_limit(
             key = f"rl:ip:{ip}"
 
         elif scope == "user":
-            # Expect request.state.user to be set by auth middleware
             user = getattr(request.state, "user", None)
             user_id = getattr(user, "id", "anonymous")
             key = f"rl:user:{user_id}"
@@ -52,9 +49,10 @@ def rate_limit(
             key = f"rl:tenant:{tenant_id}"
 
         else:
-            raise ValueError(f"Unsupported rate limit scope: {scope}")
+            raise ValueError(f"Unsupported scope: {scope}")
 
-        allowed = await bucket.consume(
+        # Delegate to service layer
+        allowed = await limiter.is_allowed(
             key=key,
             capacity=capacity,
             refill_rate=refill_rate,

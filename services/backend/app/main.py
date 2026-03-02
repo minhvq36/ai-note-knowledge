@@ -13,6 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 
 from app.core.redis import init_redis, close_redis
+from app.core.rate_limit import RateLimiter, TokenBucket
 
 app = FastAPI(title="AI Note Knowledge Backend")
 
@@ -69,6 +70,8 @@ async def domain_error_handler(request: Request, exc: DomainError):
 @app.on_event("startup")
 async def startup():
     await init_redis(app)
+    bucket = TokenBucket(app.state.redis)
+    app.state.limiter = RateLimiter(bucket)
 
 @app.on_event("shutdown")
 async def shutdown():
