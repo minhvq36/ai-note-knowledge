@@ -5,6 +5,7 @@ from fastapi import Request, HTTPException, status, Depends
 
 from app.core.dependencies import get_limiter
 from app.core.rate_limit import RateLimiter
+from app.core.network import resolve_client_ip
 
 
 def rate_limit(
@@ -36,7 +37,7 @@ def rate_limit(
             key = "rl:global"
 
         elif scope == "ip":
-            ip = request.client.host if request.client else "unknown"
+            ip = resolve_client_ip(request)
             key = f"rl:ip:{ip}"
 
         elif scope == "user":

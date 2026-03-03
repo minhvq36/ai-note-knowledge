@@ -70,6 +70,7 @@ async def domain_error_handler(request: Request, exc: DomainError):
 @app.on_event("startup")
 async def startup():
     await init_redis(app)
+    # Initialize RateLimiter with Redis-backed TokenBucket
     bucket = TokenBucket(app.state.redis)
     app.state.limiter = RateLimiter(bucket)
 

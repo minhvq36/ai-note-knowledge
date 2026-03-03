@@ -10,7 +10,7 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-02-24 (CORS Fix + Redis Planning)
+Last Updated: 2026-03-03 (RateLimiter Refactor - Service Layer Introduced)
 Project Stage: Development
 
 ---
@@ -55,9 +55,13 @@ Database
 * Row Level Security (RLS)
 * RPC driven domain logic
 
+Infra (In Progress)
+
+* Redis (rate limit layer)
+
 Future Infra
 
-* Redis (rate limit + selective cache)
+* Selective cache via Redis
 * CI/CD
 * Observability
 
@@ -70,8 +74,10 @@ Browser
 → Backend API (FastAPI)
 → Supabase Postgres (RLS + RPC)
 
-(Planned addition)
-→ Redis (rate limit + cache layer)
+(Added 2026-03-03)
+→ Redis
+→ TokenBucket (engine)
+→ RateLimiter (service layer)
 
 Principles
 
@@ -80,6 +86,8 @@ Principles
 * Backend does NOT duplicate DB rules
 * Frontend manages UI + local state
 * Prefer re-fetch over optimistic update (for now)
+* Redis is performance layer only
+* Service layer abstracts infrastructure
 
 ---
 
@@ -98,6 +106,9 @@ services/
     app/
       auth/
       contracts/
+      core/
+        dependencies.py
+        rate_limit.py
       db/
       errors/
       routers/
@@ -137,14 +148,22 @@ frontend/
     styles.css
 ```
 
+Rate Limit Modules (New)
+
+* core/rate_limit.py
+
+  * TokenBucket (Redis engine)
+  * RateLimiter (service abstraction)
+* core/dependencies.py
+
+  * get_limiter()
+* routers rate_limit dependency factory
+
 Rules
 
-* Router: `src/core/router`
-* Global state: `src/core/state`
-* API client: `src/api`
-* Components: `src/components`
-* Pages compose components only
-* UI variants use modifier classes
+* Router depends on RateLimiter only
+* TokenBucket must NEVER be used directly in routers
+* app.state stores limiter (not bucket)
 
 ---
 
@@ -162,6 +181,15 @@ Completed
 * RPC based domain logic
 * HTTP layer stabilization
 * E2E tests passing
+
+Rate Limit Refactor (2026-03-03)
+
+* Introduced TokenBucket (Redis atomic Lua logic)
+* Introduced RateLimiter service layer
+* Removed direct bucket dependency from middleware
+* Replaced get_bucket() with get_limiter()
+* app.state.bucket → app.state.limiter
+* Middleware now delegates to RateLimiter.check()
 
 Important rule
 
@@ -269,15 +297,19 @@ SWR adopted
 
 Vanilla frontend before React
 
+Service layer for infrastructure abstraction (RateLimiter)
+
 ---
 
 # 10. Latest Implemented Tasks
 
-**2026-02-24 - CORS Configuration Fix**
+**2026-03-03 - Rate Limiter Refactor (Service Layer Architecture)**
 
-* Fixed CORS_ORIGINS env parsing
-* Backend restarted successfully
-* Branch: v0.6.1-middleware-messagebroker
+* TokenBucket isolated as low-level engine
+* RateLimiter introduced as abstraction layer
+* Dependency updated to get_limiter()
+* Middleware no longer aware of TokenBucket
+* Clean layered architecture achieved
 
 ---
 
@@ -288,6 +320,7 @@ Vanilla frontend before React
 * No normalization layer
 * No optimistic updates
 * Limited observability
+* Rate limit metrics not yet implemented
 
 ---
 
@@ -295,22 +328,13 @@ Vanilla frontend before React
 
 Current Focus
 
-* Improve workspace UX consistency
-* Reduce UI friction
-* Prepare Redis integration (rate limit + selective cache)
+* Finalize Redis bootstrap in main.py
+* Protect login endpoint
+* Add user-based limit
+* Add tenant-based limit
+* Ensure Redis failure does NOT break API
 
-Rate Limit Checklist
-
-1. Add Redis to docker-compose
-2. Create Redis connection module
-3. Implement middleware (Fixed window)
-4. Protect login endpoint
-5. Add user-based limit
-6. Add tenant-based limit
-7. Return HTTP 429 consistently
-8. Redis failure must not break API
-
-Cache Checklist
+Cache (Next Phase)
 
 1. Identify safe cache endpoints (dashboard / aggregation only)
 2. Implement cache-aside helper
@@ -332,8 +356,8 @@ System Engineering
 
 Infrastructure
 
-* Redis (rate limit + cache)
-* Docker
+* Redis selective cache
+* Docker hardening
 * CI/CD
 
 Frontend Evolution
@@ -351,3 +375,4 @@ Frontend Evolution
 * Security enforced at data layer
 * Stability over cleverness
 * Refactor when architecture pressure appears
+* Abstract infrastructure behind services
