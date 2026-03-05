@@ -105,14 +105,43 @@ services/
   backend/
     app/
       auth/
+        deps.py
+      cache/
+        helper.py
       contracts/
+        member.py
+        note.py
+        request.py
+        tenant.py
       core/
         dependencies.py
+        network.py
         rate_limit.py
+        redis.py
       db/
+        client.py
+        membership_requests.py
+        membership.py
+        notes.py
+        shares.py
+        tenants.py
       errors/
+        db.py
+        http.py
+      http/
+        response.py
+      middleware/
+        rate_limit.py
       routers/
+        me.py
+        members.py
+        notes.py
+        requests.py
+        tenants.py
       main.py
+    tests/
+      contract/
+      integration/
 
 frontend/
   src/
