@@ -57,6 +57,7 @@ class Policy:
 
     # Tenant-specific: heavy write endpoint
     TENANT_HEAVY_WRITE = _TENANT_STD.override(capacity=5, refill_rate=0.1)
+    TENANT_WRITE_NORMAL = _TENANT_STD.override(capacity=20, refill_rate=0.5)
 
     # IP-specific: temporary burst allowance
     IP_BURST = _IP_STD.override(capacity=500, refill_rate=50)

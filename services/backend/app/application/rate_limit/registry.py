@@ -1,99 +1,50 @@
-"""
+'''
 BLOCK COMMENT:
-Rate limit policy registry.
-
-Purpose:
-- Central place mapping endpoints to rate limit policies
-- Keeps routers clean and consistent
-- Allows easy adjustment of limits without touching route code
-
-Usage:
-    Depends(rate_limit(**RateLimitRegistry.NOTES_LIST))
-"""
-
+Final Professional Security Bundles.
+Each bundle represents a specific 'Shield Level'.
+Order of Depends is optimized for performance (IP check first).
+'''
+from fastapi import Depends
+from app.auth.context import attach_user_context
+from app.middleware.rate_limit import rate_limit
 from app.application.rate_limit.policies import Policy
 
 
 class RateLimitRegistry:
-    """
-    Central registry of rate limit policies for API endpoints.
-    """
+    # (1) IP_ONLY: For non-auth endpoints (Login/Register)
+    IP_ONLY = [
+        Depends(rate_limit(**Policy.IP_STANDARD))
+    ]
 
-    # -------------------------------------------------
-    # USER SCOPED
-    # -------------------------------------------------
+    # (2) USER_ONLY: For personal space (Me/Profile)
+    USER_ONLY = [
+        Depends(attach_user_context), 
+        Depends(rate_limit(**Policy.USER_STANDARD))
+    ]
 
-    """
-    Standard authenticated user operations.
-    """
-    USER_STANDARD = Policy.USER_STANDARD
+    # (4) IP_USER: Double shield for global discovery (List Tenants)
+    IP_USER = [
+        Depends(rate_limit(**Policy.IP_STANDARD)),
+        Depends(attach_user_context),
+        Depends(rate_limit(**Policy.USER_STANDARD))
+    ]
 
-    """
-    Relaxed limit for search-like operations.
-    """
-    USER_SEARCH = Policy.USER_SEARCH_RELAXED
+    # (5a) USER_TENANT_NORMAL: Standard SaaS writes (Notes/Shares)
+    USER_TENANT_NORMAL = [
+        Depends(attach_user_context),
+        Depends(rate_limit(**Policy.USER_STANDARD)),
+        Depends(rate_limit(**Policy.TENANT_WRITE_NORMAL))
+    ]
 
+    # (5b) USER_TENANT_CRITICAL: Admin actions (Invites/Roles/Delete)
+    USER_TENANT_CRITICAL = [
+        Depends(attach_user_context),
+        Depends(rate_limit(**Policy.USER_STANDARD)),
+        Depends(rate_limit(**Policy.TENANT_HEAVY_WRITE))
+    ]
 
-    # -------------------------------------------------
-    # TENANT SCOPED
-    # -------------------------------------------------
-
-    """
-    Tenant-level operations (shared workspace resources).
-    """
-    TENANT_STANDARD = Policy.TENANT_STANDARD
-
-    """
-    Heavy write operations affecting shared tenant data.
-    """
-    TENANT_HEAVY_WRITE = Policy.TENANT_HEAVY_WRITE
-
-
-    # -------------------------------------------------
-    # IP SCOPED
-    # -------------------------------------------------
-
-    """
-    Public endpoints protection (login, auth, etc).
-    """
-    IP_STANDARD = Policy.IP_STANDARD
-
-    """
-    Temporary burst allowance (for scraping spikes or batch jobs).
-    """
-    IP_BURST = Policy.IP_BURST
-
-
-    # -------------------------------------------------
-    # GLOBAL SCOPED
-    # -------------------------------------------------
-
-    """
-    Global system-wide protection.
-    """
-    GLOBAL_STANDARD = Policy.GLOBAL_STANDARD
-
-    """
-    Administrative / maintenance operations.
-    """
-    GLOBAL_ADMIN = Policy.GLOBAL_ADMIN
-
-
-    # -------------------------------------------------
-    # SPECIFIC ENDPOINTS (OPTIONAL)
-    # -------------------------------------------------
-
-    """
-    Frequently used endpoint presets.
-    These make router code even cleaner.
-    """
-
-    NOTES_LIST = Policy.USER_STANDARD
-
-    NOTES_UPDATE = Policy.TENANT_HEAVY_WRITE
-
-    NOTES_SHARE = Policy.TENANT_HEAVY_WRITE
-
-    TENANT_MEMBER_CHANGE_ROLE = Policy.TENANT_HEAVY_WRITE
-
-    TENANT_MEMBER_REMOVE = Policy.TENANT_HEAVY_WRITE
+    # (6) TENANT_READ: Viewing shared tenant resources
+    TENANT_READ = [
+        Depends(attach_user_context),
+        Depends(rate_limit(**Policy.TENANT_STANDARD))
+    ]
