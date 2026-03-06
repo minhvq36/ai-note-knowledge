@@ -32,6 +32,8 @@ def rate_limit(
         # Build key
         if key_builder:
             key = key_builder(request)
+            if not key:
+                raise ValueError("key_builder must return a valid key")
 
         elif scope == "global":
             key = "rl:global"
@@ -41,12 +43,13 @@ def rate_limit(
             key = f"rl:ip:{ip}"
 
         elif scope == "user":
-            user = getattr(request.state, "user", None)
-            user_id = getattr(user, "id", "anonymous")
+            user_id = getattr(request.state, "user_id", "anonymous")
             key = f"rl:user:{user_id}"
 
         elif scope == "tenant":
-            tenant_id = getattr(request.state, "tenant_id", "default")
+            tenant_id = request.path_params.get("tenant_id")
+            if not tenant_id:
+                tenant_id = getattr(request.state, "tenant_id", "default")
             key = f"rl:tenant:{tenant_id}"
 
         else:
