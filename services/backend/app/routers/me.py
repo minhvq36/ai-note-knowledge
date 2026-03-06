@@ -9,6 +9,7 @@ Endpoints:
 """
 
 from fastapi import APIRouter, Depends, Query
+from app.application.rate_limit.registry import RateLimitRegistry
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership_requests import list_my_invites, list_my_join_requests
@@ -33,7 +34,7 @@ router = APIRouter(
 )
 
 
-@router.get("/tenants")
+@router.get("/tenants", dependencies=RateLimitRegistry.USER_ONLY)
 def list_my_tenants_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -81,7 +82,7 @@ def list_my_tenants_endpoint(
         ),
     )
 
-@router.get("/invites/pending")
+@router.get("/invites/pending", dependencies=RateLimitRegistry.USER_ONLY)
 def list_my_invites_endpoint(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -106,7 +107,7 @@ def list_my_invites_endpoint(
     )
 
 
-@router.get("/requests")
+@router.get("/requests", dependencies=RateLimitRegistry.USER_ONLY)
 def list_my_join_requests_endpoint(
     status: str = Query(None),
     limit: int = Query(20, ge=1, le=100),
@@ -131,7 +132,7 @@ def list_my_join_requests_endpoint(
     )
 
 
-@router.get("/notes/shared")
+@router.get("/notes/shared", dependencies=RateLimitRegistry.USER_ONLY)
 def list_shared_with_me_endpoint(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),

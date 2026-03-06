@@ -13,6 +13,7 @@ Endpoints:
 
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
+from app.application.rate_limit.registry import RateLimitRegistry
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.notes import get_note, update_note, delete_note, list_my_notes
@@ -43,7 +44,7 @@ router = APIRouter(
 )
 
 
-@router.get("")
+@router.get("", dependencies=RateLimitRegistry.USER_ONLY)
 def list_my_notes_endpoint(
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
@@ -80,7 +81,7 @@ def list_my_notes_endpoint(
     )
 
 
-@router.get("/{note_id}")
+@router.get("/{note_id}", dependencies=RateLimitRegistry.USER_ONLY)
 def get_note_endpoint(
     note_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -118,7 +119,7 @@ def get_note_endpoint(
     )
 
 
-@router.patch("/{note_id}")
+@router.patch("/{note_id}", dependencies=RateLimitRegistry.USER_ONLY)
 def update_note_endpoint(
     note_id: UUID,
     payload: UpdateNotePayload,
@@ -158,7 +159,7 @@ def update_note_endpoint(
     )
 
 
-@router.delete("/{note_id}")
+@router.delete("/{note_id}", dependencies=RateLimitRegistry.USER_ONLY)
 def delete_note_endpoint(
     note_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -192,7 +193,7 @@ def delete_note_endpoint(
     )
 
 
-@router.post("/{note_id}/shares")
+@router.post("/{note_id}/shares", dependencies=RateLimitRegistry.USER_ONLY)
 def share_note_endpoint(
     note_id: UUID,
     payload: ShareNotePayload,
@@ -229,7 +230,7 @@ def share_note_endpoint(
     )
 
 
-@router.delete("/{note_id}/shares/{target_user_id}")
+@router.delete("/{note_id}/shares/{target_user_id}", dependencies=RateLimitRegistry.USER_ONLY)
 def revoke_share_endpoint(
     note_id: UUID,
     target_user_id: UUID,
@@ -257,7 +258,7 @@ def revoke_share_endpoint(
     )
 
 
-@router.get("/{note_id}/shares")
+@router.get("/{note_id}/shares", dependencies=RateLimitRegistry.USER_ONLY)
 def list_note_shares_endpoint(
     note_id: UUID,
     limit: int = Query(20, ge=1, le=100),

@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends, Query
+from app.application.rate_limit.registry import RateLimitRegistry
 from app.http.response import ApiResponse
 
 from app.auth.deps import get_current_access_token
@@ -40,7 +41,10 @@ router = APIRouter(
 )
 
 
-@router.post("")
+@router.post(
+    "",
+    dependencies=RateLimitRegistry.IP_USER
+)
 def create_tenant_endpoint(
     payload: CreateTenantPayload,
     access_token: str = Depends(get_current_access_token),
@@ -76,7 +80,10 @@ def create_tenant_endpoint(
             )
 
 
-@router.delete("/{tenant_id}")
+@router.delete(
+    "/{tenant_id}",
+    dependencies=RateLimitRegistry.USER_TENANT_CRITICAL
+)
 def delete_tenant_endpoint(
     tenant_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -117,7 +124,10 @@ def delete_tenant_endpoint(
     )
 
 
-@router.post("/{tenant_id}/leave")
+@router.post(
+    "/{tenant_id}/leave",
+    dependencies=RateLimitRegistry.USER_TENANT_CRITICAL
+)
 def leave_tenant_endpoint(
     tenant_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -159,7 +169,10 @@ def leave_tenant_endpoint(
     )
 
 
-@router.get("")
+@router.get(
+    "",
+    dependencies=RateLimitRegistry.IP_USER
+)
 def list_tenants_endpoint(
     limit: int = Query(default=20, ge=1, le=100),
     offset: int = Query(default=0, ge=0),
@@ -199,7 +212,10 @@ def list_tenants_endpoint(
     )
 
 
-@router.get("/{tenant_id}")
+@router.get(
+    "/{tenant_id}",
+    dependencies=RateLimitRegistry.TENANT_READ
+)
 def get_tenant_details_endpoint(
     tenant_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -237,7 +253,10 @@ def get_tenant_details_endpoint(
     )
 
 
-@router.get("/{tenant_id}/members")
+@router.get(
+    "/{tenant_id}/members",
+    dependencies=RateLimitRegistry.TENANT_READ
+)
 def list_tenant_members_endpoint(
     tenant_id: UUID,
     limit: int = Query(default=20, ge=1, le=100),
@@ -281,7 +300,10 @@ def list_tenant_members_endpoint(
     )
 
 
-@router.post("/{tenant_id}/requests/join")
+@router.post(
+    "/{tenant_id}/requests/join",
+    dependencies=RateLimitRegistry.USER_TENANT_NORMAL
+)
 def request_join_endpoint(
     tenant_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -315,7 +337,10 @@ def request_join_endpoint(
     )
 
 
-@router.post("/{tenant_id}/invites")
+@router.post(
+    "/{tenant_id}/invites",
+    dependencies=RateLimitRegistry.USER_TENANT_CRITICAL
+)
 def invite_user_to_tenant_endpoint(
     tenant_id: UUID,
     payload: InviteUserToTenantPayload,
@@ -352,7 +377,10 @@ def invite_user_to_tenant_endpoint(
     )
 
 
-@router.get("/{tenant_id}/requests/join")
+@router.get(
+    "/{tenant_id}/requests/join",
+    dependencies=RateLimitRegistry.TENANT_READ
+)
 def list_join_requests_endpoint(
     tenant_id: UUID,
     status: str = Query(None),
@@ -379,7 +407,10 @@ def list_join_requests_endpoint(
     )
 
 
-@router.get("/{tenant_id}/invites")
+@router.get(
+    "/{tenant_id}/invites",
+    dependencies=RateLimitRegistry.TENANT_READ
+)
 def list_invites_endpoint(
     tenant_id: UUID,
     status: str = Query(None),
@@ -406,7 +437,10 @@ def list_invites_endpoint(
     )
 
 
-@router.post("/{tenant_id}/notes")
+@router.post(
+    "/{tenant_id}/notes",
+    dependencies=RateLimitRegistry.USER_TENANT_NORMAL
+)
 def create_note_endpoint(
     tenant_id: UUID,
     payload: CreateNotePayload,
@@ -446,7 +480,10 @@ def create_note_endpoint(
         ),
     )
 
-@router.get("/{tenant_id}/notes")
+@router.get(
+    "/{tenant_id}/notes",
+    dependencies=RateLimitRegistry.TENANT_READ
+)
 def list_tenant_notes_endpoint(
     tenant_id: UUID,
     limit: int = Query(20, ge=1, le=100),

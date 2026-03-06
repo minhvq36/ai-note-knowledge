@@ -14,6 +14,7 @@ Invite endpoints:
 
 from uuid import UUID
 from fastapi import APIRouter, Depends
+from app.application.rate_limit.registry import RateLimitRegistry
 from app.http.response import ApiResponse
 from app.auth.deps import get_current_access_token
 from app.db.membership_requests import (
@@ -41,7 +42,7 @@ router = APIRouter(
 )
 
 
-@router.post("/{request_id}/approve")
+@router.post("/{request_id}/approve", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
 def approve_join_request_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -75,7 +76,7 @@ def approve_join_request_endpoint(
     )
 
 
-@router.post("/{request_id}/reject")
+@router.post("/{request_id}/reject", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
 def reject_join_request_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -109,7 +110,7 @@ def reject_join_request_endpoint(
     )
 
 
-@router.post("/{request_id}/cancel")
+@router.post("/{request_id}/cancel", dependencies=RateLimitRegistry.USER_ONLY)
 def cancel_join_request_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -142,7 +143,7 @@ def cancel_join_request_endpoint(
     )
 
 
-@router.post("/{request_id}/accept")
+@router.post("/{request_id}/accept", dependencies=RateLimitRegistry.USER_ONLY)
 def accept_invite_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -176,7 +177,7 @@ def accept_invite_endpoint(
     )
 
 
-@router.post("/{request_id}/decline")
+@router.post("/{request_id}/decline", dependencies=RateLimitRegistry.USER_ONLY)
 def decline_invite_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -210,7 +211,7 @@ def decline_invite_endpoint(
     )
 
 
-@router.post("/{request_id}/revoke")
+@router.post("/{request_id}/revoke", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
 def revoke_invite_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),

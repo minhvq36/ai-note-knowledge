@@ -1,5 +1,6 @@
 from uuid import UUID
 from fastapi import APIRouter, Depends
+from app.application.rate_limit.registry import RateLimitRegistry
 from app.http.response import ApiResponse
 
 from app.auth.deps import get_current_access_token
@@ -14,7 +15,7 @@ router = APIRouter(
 )
 
 
-@router.post("/{user_id}/role")
+@router.post("/{user_id}/role", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
 def change_member_role(
     tenant_id: UUID,
     user_id: UUID,
@@ -57,7 +58,7 @@ def change_member_role(
     )
 
 
-@router.delete("/{user_id}")
+@router.delete("/{user_id}", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
 def remove_member(
     tenant_id: UUID,
     user_id: UUID,
