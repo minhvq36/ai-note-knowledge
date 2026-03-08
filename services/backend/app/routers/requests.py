@@ -42,7 +42,7 @@ router = APIRouter(
 )
 
 
-@router.post("/{request_id}/approve", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
+@router.post("/{request_id}/approve", dependencies=RateLimitRegistry.USER_ONLY)
 def approve_join_request_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -76,7 +76,7 @@ def approve_join_request_endpoint(
     )
 
 
-@router.post("/{request_id}/reject", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
+@router.post("/{request_id}/reject", dependencies=RateLimitRegistry.USER_ONLY)
 def reject_join_request_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
@@ -211,7 +211,7 @@ def decline_invite_endpoint(
     )
 
 
-@router.post("/{request_id}/revoke", dependencies=RateLimitRegistry.USER_TENANT_CRITICAL)
+@router.post("/{request_id}/revoke", dependencies=RateLimitRegistry.USER_ONLY)
 def revoke_invite_endpoint(
     request_id: UUID,
     access_token: str = Depends(get_current_access_token),
