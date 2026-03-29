@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     CORS_ORIGINS: list[str] = []
     
     REDIS_URL: str
+    API_PREFIX: str = "/api/v1"
 
     class Config:
         env_file = ".env"

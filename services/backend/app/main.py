@@ -77,9 +77,10 @@ async def startup():
 @app.on_event("shutdown")
 async def shutdown():
     await close_redis(app)
-    
-app.include_router(members_router)
-app.include_router(tenants_router)
-app.include_router(requests_router)
-app.include_router(me_router)
-app.include_router(notes_router)
+
+api_prefix = settings.API_PREFIX
+app.include_router(members_router, prefix=api_prefix)
+app.include_router(tenants_router, prefix=api_prefix)
+app.include_router(requests_router, prefix=api_prefix)
+app.include_router(me_router, prefix=api_prefix)
+app.include_router(notes_router, prefix=api_prefix)
