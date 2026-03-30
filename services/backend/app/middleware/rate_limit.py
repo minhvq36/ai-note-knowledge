@@ -1,11 +1,14 @@
 # English comments only
 
+import logging
 from typing import Callable, Optional
 from fastapi import Request, HTTPException, status, Depends
 
 from app.core.dependencies import get_limiter
 from app.core.rate_limit import RateLimiter
 from app.core.network import resolve_client_ip
+
+logger = logging.getLogger(__name__)
 
 
 def rate_limit(
@@ -54,6 +57,9 @@ def rate_limit(
 
         else:
             raise ValueError(f"Unsupported scope: {scope}")
+
+        # MASTER LOGGING: Track Redis key construction
+        logger.info(f"[RateLimit] scope={scope}, key={key}, capacity={capacity}, refill_rate={refill_rate}")
 
         # Delegate to service layer
         allowed = await limiter.is_allowed(

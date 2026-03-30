@@ -1,5 +1,6 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
+import logging
 
 from app.routers.members import router as members_router
 from app.routers.tenants import router as tenants_router
@@ -14,6 +15,9 @@ from app.config import settings
 
 from app.core.redis import init_redis, close_redis
 from app.core.rate_limit import RateLimiter, TokenBucket
+from app.application.rate_limit.registry import RateLimitRegistry
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI Note Knowledge Backend")
 
@@ -29,6 +33,25 @@ app.add_middleware(
 @app.get("/", include_in_schema=False)
 async def redirect_to_docs():
     return RedirectResponse(url="/docs")
+
+# TODO: Remove dependency on health to prevent K8s marked as DDOS
+@app.get("/health", dependencies=RateLimitRegistry.IP_ONLY)
+async def health_check():
+    """
+    Health check endpoint with Redis connectivity verification.
+    
+    Rate limit: IP_ONLY (no authentication required).
+    Returns simple JSON (not ApiResponse format) for infrastructure compatibility.
+    Load balancers expect minimal response without business error details.
+    """
+    try:
+        # Verify Redis connection (async ping)
+        await app.state.redis.ping()
+        return {"status": "ok", "redis": "up"}
+    except Exception:
+        # Return degraded status but HTTP 200 to avoid load balancer panic
+        # Detailed error logging should be handled separately
+        return {"status": "degraded", "redis": "down"}
 
 
 """
@@ -70,8 +93,8 @@ async def domain_error_handler(request: Request, exc: DomainError):
 @app.on_event("startup")
 async def startup():
     await init_redis(app)
-    # Initialize RateLimiter with Redis-backed TokenBucket
-    bucket = TokenBucket(app.state.redis)
+    # Initialize RateLimiter with Redis-backed TokenBucket with logger
+    bucket = TokenBucket(app.state.redis, logger=logger)
     app.state.limiter = RateLimiter(bucket)
 
 @app.on_event("shutdown")

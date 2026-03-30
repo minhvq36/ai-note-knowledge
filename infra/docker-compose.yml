@@ -19,6 +19,9 @@ services:
     container_name: ai-note-backend
     ports:
       - "${BACKEND_PORT:-8000}:8000"
+    # TODO: Remove volumes in production - this is only for development hot reload
+    volumes:
+      - ../services/backend:/app
     environment:
       # Supabase Cloud Configuration
       SUPABASE_URL: ${SUPABASE_URL}
@@ -46,6 +49,10 @@ services:
     container_name: ai-note-frontend
     ports:
       - "${FRONTEND_PORT:-3000}:80"
+    # TODO: Remove volumes in production - this is only for development hot reload
+    volumes:
+      - ../services/frontend:/app
+      - /app/node_modules
     environment:
       # Vite can access these at build time
       VITE_API_URL: ${VITE_API_URL:-http://localhost:8000}
