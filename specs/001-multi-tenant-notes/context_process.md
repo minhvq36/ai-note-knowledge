@@ -10,25 +10,25 @@ IMPORTANT RULES
 
 # CONTEXT PROCESS
 
-Last Updated: 2026-03-03 (RateLimiter Refactor - Service Layer Introduced)
+Last Updated: 2026-03-30 (RateLimiter Verified via Integration Testing)
 Project Stage: Development
 
 ---
 
 # 1. Project Overview
 
-Multi‑Tenant AI Note & Knowledge System.
+Multi-Tenant AI Note & Knowledge System.
 
 Goals:
 
-* Production‑grade architecture
-* Learn full‑stack system engineering
+* Production-grade architecture
+* Learn full-stack system engineering
 * Strong security via database
 * Clean frontend architecture
 
 Core ideas:
 
-* Multi‑tenant isolation
+* Multi-tenant isolation
 * Database enforced permissions (RLS first)
 * Thin backend adapter
 * Simple predictable frontend
@@ -220,6 +220,22 @@ Rate Limit Refactor (2026-03-03)
 * app.state.bucket → app.state.limiter
 * Middleware now delegates to RateLimiter.check()
 
+(Updated 2026-03-30)
+
+* Rate limit system verified via integration script (httpx + Redis inspection)
+* Confirmed correct behavior:
+
+  * 200 responses within limit
+  * 429 returned when exceeding limit
+  * TTL-based reset works correctly
+* Redis key structure validated:
+
+  * rl:user:{id}
+  * rl:tenant:{id}
+  * rl:ip:{ip}
+* Health endpoint added for IP-based testing (`/health`)
+* Supabase auth integrated into test script (auto token fetch)
+
 Important rule
 
 * Backend MUST NOT contain migrations
@@ -314,6 +330,10 @@ POST   /notes/{note_id}/shares
 GET    /notes/{note_id}/shares
 DELETE /notes/{note_id}/shares/{target_user_id}
 
+(Internal / Testing)
+
+GET    /health
+
 ---
 
 # 9. Architecture Decisions
@@ -340,6 +360,14 @@ Service layer for infrastructure abstraction (RateLimiter)
 * Middleware no longer aware of TokenBucket
 * Clean layered architecture achieved
 
+**2026-03-30 - Rate Limit Integration Testing Completed**
+
+* Built standalone script (scripts_local/test_rate_limit.py)
+* Added auto-login via Supabase
+* Validated USER / TENANT / IP scopes
+* Verified Redis TTL reset behavior
+* Confirmed system is production-ready for next phase
+
 ---
 
 # 11. Known Problems / Tech Debt
@@ -357,11 +385,8 @@ Service layer for infrastructure abstraction (RateLimiter)
 
 Current Focus
 
-* Finalize Redis bootstrap in main.py
-* Protect login endpoint
-* Add user-based limit
-* Add tenant-based limit
-* Ensure Redis failure does NOT break API
+* Redis Rate Limit (COMPLETED & VERIFIED)
+* Transition to Redis Cache layer
 
 Cache (Next Phase)
 
