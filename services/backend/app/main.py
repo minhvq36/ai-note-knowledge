@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, Depends
 from fastapi.responses import RedirectResponse, JSONResponse
 import logging
+import sys
 
 from app.routers.members import router as members_router
 from app.routers.tenants import router as tenants_router
@@ -16,6 +17,14 @@ from app.config import settings
 from app.core.redis import init_redis, close_redis
 from app.core.rate_limit import RateLimiter, TokenBucket
 from app.application.rate_limit.registry import RateLimitRegistry
+import os
+# Configure logging to see all custom logs in console
+LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO").upper()
+logging.basicConfig(
+    level=getattr(logging, LOG_LEVEL),
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    stream=sys.stdout,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +43,7 @@ app.add_middleware(
 async def redirect_to_docs():
     return RedirectResponse(url="/docs")
 
-# TODO: Remove dependency on health to prevent K8s marked as DDOS
-@app.get("/health", dependencies=RateLimitRegistry.IP_ONLY)
+@app.get("/health")
 async def health_check():
     """
     Health check endpoint with Redis connectivity verification.
